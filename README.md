@@ -131,7 +131,14 @@ python test_multispatial_graph_spectral_advanced.py --device cpu --num-workers 0
     --model-path spatial_spectral_<timestamp>/models/best_model_overall.pth
 ```
 
-The trained weights (`best_model_overall.pth`: 6.9 MB for `dim=128`, 29 MB for `dim=264`) are not tracked in git. If they are published, they will be attached to a GitHub Release.
+The trained weights for the best model (`dim=128`, 6.9 MB) are attached to the [v1.0 release](https://github.com/happyc0der/eeg-dementia-graph-transformer/releases/tag/v1.0) as `eeg-graph-transformer-dim128.pth` (SHA-256 `\28eded145850e31fd688c1f689bf3b34aba7f6091f0d53c68b764adf99235051`). Download it and evaluate without training:
+
+```bash
+gh release download v1.0 -R happyc0der/eeg-dementia-graph-transformer -p eeg-graph-transformer-dim128.pth
+python test_multispatial_graph_spectral_advanced.py --model-path eeg-graph-transformer-dim128.pth --dim 128
+```
+
+(or download it from the release page in a browser). Weights are not tracked in git.
 
 ### Baselines
 
