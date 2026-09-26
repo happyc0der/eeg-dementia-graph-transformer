@@ -3,7 +3,7 @@ Prepare OpenNeuro ds004504 (AD / FTD / healthy-control resting-state EEG) for th
 
 1. Split the 88 participants 80/20 *by subject* (seed 42) -> train subjects / cross-subject test subjects.
 2. For every preprocessed recording in derivatives/, drop the first 30 s, resample to 95 Hz and cut it
-   into non-overlapping ~15 s chunks (1424 samples), exported as EEGLAB .set files.
+   into non-overlapping ~15 s chunks (1425 samples: --chunk-size 1424 plus the inclusive crop end), exported as EEGLAB .set files.
 3. ~10% of the chunks of *training* subjects are held out as a within-subject test set.
 4. Write <output-dir>/labels.json describing every chunk (file, label A/C/F, split).
 

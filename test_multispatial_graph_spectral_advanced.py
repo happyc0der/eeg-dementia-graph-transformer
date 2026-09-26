@@ -212,7 +212,7 @@ def test_model(data_type, model_path, data_dir='model-data', dim=128, device=Non
             f.write(f"{cls} ({DISEASE_NAMES[cls]}):\n  Total: {results['class_totals'][cls]}\n"
                     f"  Correct: {results['class_correct'][cls]}\n")
             for k, v in results['class_as_other'][cls].items():
-                f.write(f"  Misclassified {k}: {v} ({100 * v / results['class_totals'][cls]:.2f}%)\n")
+                f.write(f"  Misclassified {k}: {v} ({100 * v / max(1, results['class_totals'][cls]):.2f}%)\n")
             f.write(f"  Precision: {metrics['precision']*100:.2f}%\n  Recall: {metrics['recall']*100:.2f}%\n"
                     f"  F1: {metrics['f1']*100:.2f}%\n  Accuracy: {metrics['accuracy']*100:.2f}%\n"
                     f"  Specificity: {metrics['specificity']*100:.2f}%\n  ROC-AUC: {metrics['roc_auc']*100:.2f}%\n"
@@ -240,7 +240,7 @@ def parse_args():
     parser.add_argument('--output-dir', default=None, help='Default: spatial_results_<timestamp>')
     parser.add_argument('--device', default=None, help="'cuda' or 'cpu' (default: cuda if available)")
     parser.add_argument('--num-workers', type=int, default=2)
-    parser.add_argument('--max-samples', type=int, default=None, help='Evaluate only the first N chunks (smoke test)')
+    parser.add_argument('--max-samples', type=int, default=None, help='Evaluate only N chunks, evenly spaced through the split (smoke test)')
     parser.add_argument('--legacy-features', action='store_true',
                         help='Use the older feature pipeline that produced the originally logged numbers')
     return parser.parse_args()

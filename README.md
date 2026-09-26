@@ -6,7 +6,7 @@ This started as a team project for the NYU *Neuroinformatics* course (Spring 202
 
 ## Key results
 
-The unit of evaluation is a 15-second EEG chunk (95 Hz, 1424 samples). The data are split by **subject** (80/20, seed 42):
+The unit of evaluation is a 15-second EEG chunk (95 Hz, 1425 samples). The data are split by **subject** (80/20, seed 42):
 
 | Model (checkpoint) | Params | Cross-subject acc. | Cross-subject bal. acc. | Cross-subject weighted F1 | Within-subject acc. |
 |---|---:|---:|---:|---:|---:|
@@ -45,7 +45,7 @@ flowchart LR
     I --> J[MLP classifier<br/>AD / CN / FTD]
 ```
 
-- **Preprocessing** ([`data_prep.py`](data_prep.py)) starts from the dataset's preprocessed `derivatives/` recordings (already band-pass filtered and ICA/ASR-cleaned by the dataset authors). Participants are split 80/20 by subject. For each recording the first 30 s are dropped and the signal is resampled to 95 Hz. It is then cut into 1424-sample (~15 s) chunks, and a random 10 % of training-subject chunks form the within-subject test set.
+- **Preprocessing** ([`data_prep.py`](data_prep.py)) starts from the dataset's preprocessed `derivatives/` recordings (already band-pass filtered and ICA/ASR-cleaned by the dataset authors). Participants are split 80/20 by subject. For each recording the first 30 s are dropped and the signal is resampled to 95 Hz. It is then cut into 1425-sample (15 s) chunks (`--chunk-size 1424`; the crop end is inclusive), and a random 10 % of training-subject chunks form the within-subject test set.
 - **Features** ([`eeg_dataset_multispatialgraph_spectral_advanced.py`](eeg_dataset_multispatialgraph_spectral_advanced.py)):
   - Raw signals are z-scored per channel.
   - Log Welch band power is computed at three spectral "scales": 3 bands (0.5-8, 8-13, 13-30 Hz), 4 bands (delta, theta, alpha, beta) and 5 bands (adding gamma). Each is computed per electrode and averaged per lobe (frontal, central, temporal, parietal, occipital).
@@ -78,7 +78,7 @@ Only `participants.tsv` and `derivatives/sub-*/eeg/*.set` are used. Then build t
 python data_prep.py --bids-root path/to/ds004504 --output-dir model-data
 ```
 
-This writes `model-data/{train,test}/*.set`, `model-data/labels.json` and `model-data/participants.tsv`. Every script also reads the environment variable `EEG_DATA_DIR` if you keep the data elsewhere. With the same `participants.tsv`, the seed-42 subject split is deterministic and reproduces the held-out subjects used above (sub-002, 003, 015, 021, 022, 024, 030, 038, 052, 053, 060, 061, 064, 072, 075, 076, 082, 083).
+This writes `model-data/{train,test}/*.set`, `model-data/labels.json` and `model-data/participants.tsv`. The main-pipeline scripts also read the environment variable `EEG_DATA_DIR` if you keep the data elsewhere. With the same `participants.tsv`, the seed-42 subject split is deterministic and reproduces the held-out subjects used above (sub-002, 003, 015, 021, 022, 024, 030, 038, 052, 053, 060, 061, 064, 072, 075, 076, 082, 083).
 
 ## Setup
 
@@ -140,7 +140,14 @@ python test_multispatial_graph_spectral_advanced.py --model-path eeg-graph-trans
 
 (or download it from the release page in a browser). The same release also has the `dim=264` model
 (`eeg-graph-transformer-dim264.pth`, use `--dim 264`) and the SVM baseline's models and results
-(`svm-baseline-models.zip`). Weights are not tracked in git.
+(`svm-baseline-models.zip`). Weights are not tracked in git. Check a download with `sha256sum <file>`
+(PowerShell: `Get-FileHash <file>`):
+
+| Release asset | SHA-256 |
+|---|---|
+| `eeg-graph-transformer-dim128.pth` | `28eded145850e31fd688c1f689bf3b34aba7f6091f0d53c68b764adf99235051` |
+| `eeg-graph-transformer-dim264.pth` | `cf8a7d42af05921237e5861ccfccca2c7b3c95566b7c477c98b88a2b4364f668` |
+| `svm-baseline-models.zip` | `712644d214ab0adaf5b6b7f58d6e73538fe89ad1bd9abc61d4954eaeacaba2dc` |
 
 ### Baselines
 
@@ -180,7 +187,7 @@ The [`baselines/`](baselines/) folder holds the earlier models, kept as-is from 
 
 - **Team (NYU Neuroinformatics, Spring 2025):** [Subhrajit Dey (@subro608)](https://github.com/subro608), who wrote most of the model and training code, [Keshav Rajput (@happyc0der)](https://github.com/happyc0der), [Sirish Visweswar (@itsSirish)](https://github.com/itsSirish) and [@terka2610](https://github.com/terka2610). The original shared repository is [subro608/Neuroinformatics](https://github.com/subro608/Neuroinformatics). This repo is a cleaned-up snapshot with a fresh history.
 - The EEGNet baseline and the original data-prep script build on [Leofierus/eeg-alzheimers-detection](https://github.com/Leofierus/eeg-alzheimers-detection).
-- **Dataset:** Miltiadous, A., Tzimourta, K. D., Afrantou, T., et al. (2023). *A Dataset of Scalp EEG Recordings of Alzheimer's Disease, Frontotemporal Dementia and Healthy Subjects from Routine EEG.* Data, 8(6), 95. https://doi.org/10.3390/data8060095. Available on OpenNeuro as [ds004504](https://openneuro.org/datasets/ds004504).
+- **Dataset:** Miltiadous, A., Tzimourta, K. D., Afrantou, T., et al. (2023). *A Dataset of Scalp EEG Recordings of Alzheimer's Disease, Frontotemporal Dementia and Healthy Subjects from Routine EEG.* Data, 8(6), 95. https://doi.org/10.3390/data8060095. Available on OpenNeuro as [ds004504](https://openneuro.org/datasets/ds004504) (doi:[10.18112/openneuro.ds004504.v1.0.9](https://doi.org/10.18112/openneuro.ds004504.v1.0.9), CC0). The dataset authors also ask users to cite the first study on it: Miltiadous, A., Gionanidis, E., Tzimourta, K. D., Giannakeas, N., & Tzallas, A. T. (2023). *DICE-net: A Novel Convolution-Transformer Architecture for Alzheimer Detection in EEG Signals.* IEEE Access. https://doi.org/10.1109/ACCESS.2023.3294618.
 
 ## License
 
