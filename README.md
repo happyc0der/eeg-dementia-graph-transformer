@@ -138,7 +138,9 @@ gh release download v1.0 -R happyc0der/eeg-dementia-graph-transformer -p eeg-gra
 python test_multispatial_graph_spectral_advanced.py --model-path eeg-graph-transformer-dim128.pth --dim 128
 ```
 
-(or download it from the release page in a browser). Weights are not tracked in git.
+(or download it from the release page in a browser). The same release also has the `dim=264` model
+(`eeg-graph-transformer-dim264.pth`, use `--dim 264`) and the SVM baseline's models and results
+(`svm-baseline-models.zip`). Weights are not tracked in git.
 
 ### Baselines
 
