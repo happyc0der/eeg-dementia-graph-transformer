@@ -184,4 +184,4 @@ The [`baselines/`](baselines/) folder holds the earlier models, kept as-is from 
 
 ## License
 
-No license file is included yet: the code was written jointly by the team, so any license should be agreed with the co-authors (MIT is suggested). The EEG data are **not** redistributed here and remain under the dataset's own OpenNeuro terms (CC0).
+Code released into the public domain under [The Unlicense](LICENSE), with the agreement of the team. The EEG data are **not** redistributed here and remain under the dataset's own OpenNeuro terms (CC0).
