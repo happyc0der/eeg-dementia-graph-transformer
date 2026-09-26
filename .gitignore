@@ -1,0 +1,52 @@
+# ---- Data (not redistributed; see README "Dataset") ----
+eeg-data/
+eeg_data/
+intermediate-data/
+intermediate_data/
+model-data/
+model_data/
+model-data_30k/
+model-data_7.5k/
+*.set
+*.fdt
+*.edf
+*.npy
+*.npz
+EEGPT/
+
+# ---- Model weights / checkpoints ----
+*.pth
+*.pt
+*.pkl
+*.ckpt
+models/
+svm-models/
+svm-models_best/
+
+# ---- Run outputs (curated copies live in results/) ----
+/spatial_spectral_*/
+/spatial_results_*/
+/results_*/
+wandb/
+*.db
+
+# ---- Original teammate git history, kept locally only ----
+.git-teammate-original/
+
+# ---- Local scratch ----
+test copy.py
+*.log
+
+# ---- Python / env ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

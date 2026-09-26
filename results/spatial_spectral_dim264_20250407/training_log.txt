@@ -1,0 +1,90 @@
+Using enhanced MVTSpatialSpectral model with scales [3, 4, 5]
+Total trainable parameters: 7,142,259
+Using device: cuda
+CUDA device: NVIDIA GeForce RTX 3080 Ti Laptop GPU
+Dataset Statistics: Before - A: 1388, C: 1102, F: 729
+After - A: 729, C: 729, F: 729, Total: 2187
+
+Data Statistics:
+raw_eeg - Shape: torch.Size([4, 19, 2000]), Min: -4.4781, Max: 4.2216
+adjacency - Shape: torch.Size([4, 19, 19]), Min: 0.5596, Max: 1.0000
+spatial_positions - Shape: torch.Size([4, 19, 3]), Min: -1.0000, Max: 1.0000
+scale_3 - Shape: torch.Size([4, 24, 3]), Min: -0.7914, Max: 1.4142
+scale_4 - Shape: torch.Size([4, 24, 4]), Min: -0.7869, Max: 1.7298
+scale_5 - Shape: torch.Size([4, 24, 5]), Min: -0.6726, Max: 1.9969
+Starting from scratch
+
+Fold 1/5
+Train batches: 54, Valid batches: 13
+Fold 1/5, Epoch 1/200, Train Loss: 8.3869, Valid Loss: nan, Accuracy: 24.52%, F1: 0.2354, LR: 0.000060
+Fold 1/5, Epoch 2/200, Train Loss: 4.6624, Valid Loss: nan, Accuracy: 62.98%, F1: 0.6301, LR: 0.000120
+Fold 1/5, Epoch 3/200, Train Loss: 3.7890, Valid Loss: nan, Accuracy: 63.70%, F1: 0.6372, LR: 0.000180
+Fold 1/5, Epoch 4/200, Train Loss: 2.9030, Valid Loss: nan, Accuracy: 69.71%, F1: 0.6935, LR: 0.000240
+Fold 1/5, Epoch 5/200, Train Loss: 2.5963, Valid Loss: nan, Accuracy: 74.76%, F1: 0.7469, LR: 0.000300
+Fold 1/5, Epoch 6/200, Train Loss: 2.2201, Valid Loss: nan, Accuracy: 59.38%, F1: 0.5749, LR: 0.000300
+Fold 1/5, Epoch 7/200, Train Loss: 1.7480, Valid Loss: nan, Accuracy: 70.91%, F1: 0.6970, LR: 0.000300
+Fold 1/5, Epoch 8/200, Train Loss: 1.5354, Valid Loss: 0.7866, Accuracy: 77.64%, F1: 0.7732, LR: 0.000300
+Fold 1/5, Epoch 9/200, Train Loss: 1.3510, Valid Loss: 0.6059, Accuracy: 85.82%, F1: 0.8576, LR: 0.000300
+Fold 1/5, Epoch 10/200, Train Loss: 1.2894, Valid Loss: 1.0099, Accuracy: 75.48%, F1: 0.7466, LR: 0.000300
+Fold 1/5, Epoch 11/200, Train Loss: 1.3162, Valid Loss: nan, Accuracy: 86.06%, F1: 0.8610, LR: 0.000300
+Fold 1/5, Epoch 12/200, Train Loss: 1.1803, Valid Loss: nan, Accuracy: 88.70%, F1: 0.8873, LR: 0.000300
+Fold 1/5, Epoch 13/200, Train Loss: 1.0999, Valid Loss: 0.5517, Accuracy: 88.22%, F1: 0.8825, LR: 0.000300
+Fold 1/5, Epoch 14/200, Train Loss: 1.0847, Valid Loss: 0.4786, Accuracy: 91.59%, F1: 0.9162, LR: 0.000300
+Fold 1/5, Epoch 15/200, Train Loss: 1.0218, Valid Loss: 0.4831, Accuracy: 90.87%, F1: 0.9085, LR: 0.000300
+Fold 1/5, Epoch 16/200, Train Loss: 0.9646, Valid Loss: 0.5080, Accuracy: 90.14%, F1: 0.9015, LR: 0.000300
+Fold 1/5, Epoch 17/200, Train Loss: 0.9667, Valid Loss: 0.5261, Accuracy: 90.38%, F1: 0.9036, LR: 0.000300
+Fold 1/5, Epoch 18/200, Train Loss: 0.9365, Valid Loss: 0.3951, Accuracy: 95.67%, F1: 0.9568, LR: 0.000300
+Fold 1/5, Epoch 19/200, Train Loss: 0.9311, Valid Loss: 0.4887, Accuracy: 90.87%, F1: 0.9086, LR: 0.000300
+Fold 1/5, Epoch 20/200, Train Loss: 0.9146, Valid Loss: nan, Accuracy: 91.59%, F1: 0.9162, LR: 0.000300
+Fold 1/5, Epoch 21/200, Train Loss: 0.8952, Valid Loss: nan, Accuracy: 86.30%, F1: 0.8600, LR: 0.000300
+Fold 1/5, Epoch 22/200, Train Loss: 0.8831, Valid Loss: 0.4064, Accuracy: 96.15%, F1: 0.9615, LR: 0.000300
+Fold 1/5, Epoch 23/200, Train Loss: 0.8727, Valid Loss: nan, Accuracy: 91.59%, F1: 0.9159, LR: 0.000300
+Fold 1/5, Epoch 24/200, Train Loss: 0.8668, Valid Loss: nan, Accuracy: 93.75%, F1: 0.9376, LR: 0.000300
+Fold 1/5, Epoch 25/200, Train Loss: 0.8623, Valid Loss: nan, Accuracy: 94.95%, F1: 0.9497, LR: 0.000300
+Fold 1/5, Epoch 26/200, Train Loss: 0.8364, Valid Loss: nan, Accuracy: 91.11%, F1: 0.9103, LR: 0.000300
+Fold 1/5, Epoch 27/200, Train Loss: 0.8111, Valid Loss: nan, Accuracy: 94.95%, F1: 0.9498, LR: 0.000300
+Fold 1/5, Epoch 28/200, Train Loss: 0.8020, Valid Loss: nan, Accuracy: 95.43%, F1: 0.9544, LR: 0.000300
+Fold 1/5, Epoch 29/200, Train Loss: 0.8028, Valid Loss: nan, Accuracy: 95.67%, F1: 0.9567, LR: 0.000150
+Fold 1/5, Epoch 30/200, Train Loss: 0.7679, Valid Loss: 0.3519, Accuracy: 97.60%, F1: 0.9759, LR: 0.000300
+Fold 1/5, Epoch 31/200, Train Loss: 0.7866, Valid Loss: nan, Accuracy: 93.51%, F1: 0.9350, LR: 0.000300
+Fold 1/5, Epoch 32/200, Train Loss: 0.7865, Valid Loss: nan, Accuracy: 95.43%, F1: 0.9544, LR: 0.000300
+Fold 1/5, Epoch 33/200, Train Loss: 0.7738, Valid Loss: nan, Accuracy: 94.95%, F1: 0.9497, LR: 0.000300
+Fold 1/5, Epoch 34/200, Train Loss: 0.7557, Valid Loss: nan, Accuracy: 94.71%, F1: 0.9473, LR: 0.000300
+Fold 1/5, Epoch 35/200, Train Loss: 0.7618, Valid Loss: nan, Accuracy: 97.60%, F1: 0.9759, LR: 0.000300
+Fold 1/5, Epoch 36/200, Train Loss: 0.7837, Valid Loss: nan, Accuracy: 94.23%, F1: 0.9426, LR: 0.000300
+Fold 1/5, Epoch 37/200, Train Loss: 0.7725, Valid Loss: nan, Accuracy: 95.43%, F1: 0.9545, LR: 0.000300
+Fold 1/5, Epoch 38/200, Train Loss: 0.7681, Valid Loss: nan, Accuracy: 96.39%, F1: 0.9638, LR: 0.000300
+Fold 1/5, Epoch 39/200, Train Loss: 0.7607, Valid Loss: nan, Accuracy: 96.63%, F1: 0.9664, LR: 0.000300
+Fold 1/5, Epoch 40/200, Train Loss: 0.7268, Valid Loss: nan, Accuracy: 95.19%, F1: 0.9521, LR: 0.000300
+Fold 1/5, Epoch 41/200, Train Loss: 0.7395, Valid Loss: nan, Accuracy: 94.95%, F1: 0.9497, LR: 0.000150
+Fold 1/5, Epoch 42/200, Train Loss: 0.7120, Valid Loss: nan, Accuracy: 98.08%, F1: 0.9809, LR: 0.000300
+Fold 1/5, Epoch 43/200, Train Loss: 0.7116, Valid Loss: nan, Accuracy: 96.88%, F1: 0.9689, LR: 0.000300
+Fold 1/5, Epoch 44/200, Train Loss: nan, Valid Loss: nan, Accuracy: 32.45%, F1: 0.1590, LR: 0.000300
+Fold 1/5, Epoch 45/200, Train Loss: 0.7147, Valid Loss: nan, Accuracy: 33.89%, F1: 0.1716, LR: 0.000300
+Fold 1/5, Epoch 46/200, Train Loss: nan, Valid Loss: nan, Accuracy: 33.17%, F1: 0.1653, LR: 0.000300
+Fold 1/5, Epoch 47/200, Train Loss: 0.6936, Valid Loss: nan, Accuracy: 34.13%, F1: 0.1737, LR: 0.000300
+Fold 1/5, Epoch 48/200, Train Loss: 0.6970, Valid Loss: nan, Accuracy: 32.93%, F1: 0.1632, LR: 0.000300
+Fold 1/5, Epoch 49/200, Train Loss: 0.6931, Valid Loss: nan, Accuracy: 33.17%, F1: 0.1653, LR: 0.000300
+Fold 1/5, Epoch 50/200, Train Loss: 0.7192, Valid Loss: nan, Accuracy: 33.65%, F1: 0.1695, LR: 0.000300
+Fold 1/5, Epoch 51/200, Train Loss: nan, Valid Loss: nan, Accuracy: 34.13%, F1: 0.1737, LR: 0.000300
+Fold 1/5, Epoch 52/200, Train Loss: nan, Valid Loss: nan, Accuracy: 33.17%, F1: 0.1653, LR: 0.000150
+Fold 1/5, Epoch 53/200, Train Loss: nan, Valid Loss: nan, Accuracy: 32.45%, F1: 0.1590, LR: 0.000300
+Fold 1/5, Epoch 54/200, Train Loss: 0.6839, Valid Loss: nan, Accuracy: 33.41%, F1: 0.1674, LR: 0.000300
+Fold 1/5, Epoch 55/200, Train Loss: nan, Valid Loss: nan, Accuracy: 32.93%, F1: 0.1632, LR: 0.000300
+Fold 1/5, Epoch 56/200, Train Loss: 0.7081, Valid Loss: nan, Accuracy: 34.13%, F1: 0.1737, LR: 0.000300
+Fold 1/5, Epoch 57/200, Train Loss: nan, Valid Loss: nan, Accuracy: 32.93%, F1: 0.1632, LR: 0.000300
+Fold 1/5, Epoch 58/200, Train Loss: 0.7383, Valid Loss: nan, Accuracy: 33.65%, F1: 0.1695, LR: 0.000300
+Fold 1/5, Epoch 59/200, Train Loss: nan, Valid Loss: nan, Accuracy: 33.41%, F1: 0.1674, LR: 0.000300
+Fold 1/5, Epoch 60/200, Train Loss: nan, Valid Loss: nan, Accuracy: 33.17%, F1: 0.1653, LR: 0.000300
+Early stopping at epoch 60
+
+Fold 2/5
+Train batches: 54, Valid batches: 13
+Fold 2/5, Epoch 1/200, Train Loss: 7.1526, Valid Loss: 6.6539, Accuracy: 31.49%, F1: 0.2232, LR: 0.000060
+Fold 2/5, Epoch 2/200, Train Loss: 4.1653, Valid Loss: 2.0741, Accuracy: 61.30%, F1: 0.5971, LR: 0.000120
+Fold 2/5, Epoch 3/200, Train Loss: 3.0747, Valid Loss: 1.4912, Accuracy: 66.83%, F1: 0.6461, LR: 0.000180
+Fold 2/5, Epoch 4/200, Train Loss: 2.7200, Valid Loss: 1.6420, Accuracy: 64.42%, F1: 0.6274, LR: 0.000240
+Fold 2/5, Epoch 5/200, Train Loss: 2.4192, Valid Loss: 2.3359, Accuracy: 63.70%, F1: 0.6113, LR: 0.000300
+Fold 2/5, Epoch 6/200, Train Loss: 2.0793, Valid Loss: 1.4460, Accuracy: 59.38%, F1: 0.5690, LR: 0.000300
+Fold 2/5, Epoch 7/200, Train Loss: 1.7944, Valid Loss: 0.9761, Accuracy: 73.56%, F1: 0.7351, LR: 0.000300
+Fold 2/5, Epoch 8/200, Train Loss: 1.5298, Valid Loss: 1.0855, Accuracy: 72.84%, F1: 0.7327, LR: 0.000300

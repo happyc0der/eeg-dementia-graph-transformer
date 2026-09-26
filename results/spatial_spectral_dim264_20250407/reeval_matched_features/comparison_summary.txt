@@ -1,0 +1,33 @@
+COMPARISON SUMMARY
+Model: spatial_spectral_20250407_180839/models/best_model_overall.pth
+
+Dataset         Accuracy   Bal.Acc    Precision  Recall     F1        
+------------------------------------------------------------
+test_cross      60.14%   58.47%   59.58%   60.14%   59.07%
+test_within     98.55%   98.59%   98.56%   98.55%   98.55%
+
+BINARY ACCURACIES
+Dataset         AD vs CN     AD vs FTD    CN vs FTD   
+------------------------------------------------------------
+test_cross      69.65%      53.71%      55.96%
+test_within     98.53%      98.17%      98.99%
+
+PER-CLASS COMPARISON
+
+A (Alzheimer's Disease (AD))
+Dataset         Prec     Rec      F1       Acc      Spec     ROC-AUC  PR-AUC  
+----------------------------------------------------------------------
+test_cross      59.56%   67.40%   63.24%   67.40%   67.98%   74.75%   62.81%
+test_within     99.31%   97.95%   98.62%   97.95%   99.49%   99.44%   99.62%
+
+C (Control (CN))
+Dataset         Prec     Rec      F1       Acc      Spec     ROC-AUC  PR-AUC  
+----------------------------------------------------------------------
+test_cross      62.78%   71.99%   67.07%   71.99%   69.89%   78.93%   59.79%
+test_within     97.66%   99.21%   98.43%   99.21%   98.62%   99.02%   98.84%
+
+F (Frontotemporal Dementia (FTD))
+Dataset         Prec     Rec      F1       Acc      Spec     ROC-AUC  PR-AUC  
+----------------------------------------------------------------------
+test_cross      55.62%   36.03%   43.73%   36.03%   86.00%   63.41%   44.82%
+test_within     98.61%   98.61%   98.61%   98.61%   99.63%   99.74%   98.46%

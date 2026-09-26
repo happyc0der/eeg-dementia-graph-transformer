@@ -1,0 +1,21 @@
+# Core pipeline (data prep + spatial-spectral graph model)
+# For GPU training install a CUDA build of PyTorch first, e.g.
+#   uv pip install torch --index-url https://download.pytorch.org/whl/cu124
+torch>=2.2
+numpy>=1.26
+scipy>=1.11
+pandas>=2.1
+scikit-learn>=1.4
+mne>=1.6
+eeglabio>=0.0.2      # lets MNE export EEGLAB .set chunks in data_prep.py
+tqdm>=4.66
+
+# Plots and baselines (EEGNet, MVT, SVM, CWT, multiscale/time-graph variants)
+matplotlib>=3.8
+seaborn>=0.13
+PyWavelets>=1.5
+
+# Optional
+wandb>=0.16          # only used when --wandb is passed
+optuna>=3.5          # baselines/hyperparameter_tuning.py
+torchviz>=0.0.2      # baselines/eeg_net.py (model graph rendering)

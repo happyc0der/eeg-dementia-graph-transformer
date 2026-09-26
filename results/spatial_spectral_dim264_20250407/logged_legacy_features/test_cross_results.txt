@@ -1,0 +1,63 @@
+EVALUATION RESULTS: TEST_CROSS
+
+Model: spatial_spectral_20250407_180839/models/best_model_overall.pth
+Samples: 873
+Class Distribution: {'A': 319, 'C': 307, 'F': 247}
+
+Accuracy: 59.68%
+Balanced Accuracy: 58.01%
+Precision: 59.19%
+Recall: 59.68%
+F1: 58.61%
+Inference Time: 24.80 ms
+
+BINARY ACCURACIES
+A_vs_C: 69.17%
+A_vs_F: 53.53%
+C_vs_F: 55.23%
+
+PER-CLASS METRICS
+A (Alzheimer's Disease (AD)):
+  Total: 319
+  Correct: 215
+  Misclassified as_C: 48 (15.05%)
+  Misclassified as_F: 56 (17.55%)
+  Precision: 58.74%
+  Recall: 67.40%
+  F1: 62.77%
+  Accuracy: 67.40%
+  Specificity: 66.96%
+  ROC-AUC: 74.80%
+  PR-AUC: 62.35%
+
+C (Control (CN)):
+  Total: 307
+  Correct: 218
+  Misclassified as_A: 75 (24.43%)
+  Misclassified as_F: 14 (4.56%)
+  Precision: 62.46%
+  Recall: 71.01%
+  F1: 66.46%
+  Accuracy: 71.01%
+  Specificity: 69.82%
+  ROC-AUC: 78.20%
+  PR-AUC: 59.78%
+
+F (Frontotemporal Dementia (FTD)):
+  Total: 247
+  Correct: 88
+  Misclassified as_A: 76 (30.77%)
+  Misclassified as_C: 83 (33.60%)
+  Precision: 55.70%
+  Recall: 35.63%
+  F1: 43.46%
+  Accuracy: 35.63%
+  Specificity: 86.08%
+  ROC-AUC: 62.94%
+  PR-AUC: 44.65%
+
+CONFUSION MATRIX
+           A      C      F   
+  A       215     48     56  
+  C        75    218     14  
+  F        76     83     88  
