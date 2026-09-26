@@ -131,7 +131,7 @@ python test_multispatial_graph_spectral_advanced.py --device cpu --num-workers 0
     --model-path spatial_spectral_<timestamp>/models/best_model_overall.pth
 ```
 
-The trained weights for the best model (`dim=128`, 6.9 MB) are attached to the [v1.0 release](https://github.com/happyc0der/eeg-dementia-graph-transformer/releases/tag/v1.0) as `eeg-graph-transformer-dim128.pth` (SHA-256 `\28eded145850e31fd688c1f689bf3b34aba7f6091f0d53c68b764adf99235051`). Download it and evaluate without training:
+The trained weights for the best model (`dim=128`, 6.9 MB) are attached to the [v1.0 release](https://github.com/happyc0der/eeg-dementia-graph-transformer/releases/tag/v1.0) as `eeg-graph-transformer-dim128.pth` (SHA-256 `28eded145850e31fd688c1f689bf3b34aba7f6091f0d53c68b764adf99235051`). Download it and, once the data is prepared (see above), evaluate without training:
 
 ```bash
 gh release download v1.0 -R happyc0der/eeg-dementia-graph-transformer -p eeg-graph-transformer-dim128.pth
