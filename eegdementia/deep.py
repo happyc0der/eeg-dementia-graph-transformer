@@ -4,10 +4,10 @@ Two families:
 
 1. **End-to-end networks** (EEGNet, ShallowFBCSPNet, fine-tuned CBraMod) wrapped by
    ``TorchEpochClassifier``, which follows the harness estimator interface
-   (``fit(X, y, sample_weight, groups)`` / ``predict_proba``). Early stopping uses a
-   validation split of *subjects* carved (stratified by class) from the training subjects it
-   is given, i.e. from the training subjects of the current outer fold only.
-2. **Frozen foundation-model embeddings** (CBraMod, LaBraM): a fixed, label-free,
+   (``fit(X, y, sample_weight, groups)`` / ``predict_proba``). Early stopping uses folds of
+   *subjects* carved (stratified by class) from the training subjects it is given, i.e. from
+   the training subjects of the current outer fold only ("subject bagging", see the class).
+2. **Frozen foundation-model embeddings** (CBraMod, LaBraM; BIOT as an exploratory extra): a fixed, label-free,
    per-epoch transform with the authors' pretrained weights. They are computed once for
    every epoch and then treated exactly like the phase-1 features (logistic-regression head
    with the inner-CV C grid, all fitted inside the training fold).

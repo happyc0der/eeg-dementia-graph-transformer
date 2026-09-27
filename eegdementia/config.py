@@ -60,8 +60,8 @@ GROUP_TO_NAME = {"A": "AD", "C": "CN", "F": "FTD"}
 CLASS_NAMES = ["AD", "CN", "FTD"]  # label index 0, 1, 2
 NAME_TO_INT = {n: i for i, n in enumerate(CLASS_NAMES)}
 
-# Held-out subjects of the legacy (April 2025) 80/20 split, reproduced from data_prep.py
-# (pandas .sample(frac=0.8, random_state=42) on participants.tsv).
+# Held-out subjects of the legacy (April 2025) 80/20 split, reproduced from legacy/data_prep.py
+# (pandas .sample(frac=0.8, random_state=42) on participants.tsv; checked by tests/test_leakage.py).
 LEGACY_TEST_SUBJECTS = [
     "sub-002", "sub-003", "sub-015", "sub-021", "sub-022", "sub-024", "sub-030", "sub-038",
     "sub-052", "sub-053", "sub-060", "sub-061", "sub-064", "sub-072", "sub-075", "sub-076",
