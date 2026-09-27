@@ -234,7 +234,7 @@ Developed on Windows 11 (Git Bash) with Python 3.12 and [uv](https://docs.astral
 ```bash
 git clone https://github.com/happyc0der/eeg-dementia-graph-transformer && cd eeg-dementia-graph-transformer
 uv sync                                    # phase 1 (CPU only): features, feature models, harness, reports
-uv run pytest                              # needs no data (one test is skipped without the dataset)
+uv run pytest                              # needs no data; tests that need the dataset or PyTorch are skipped without them
 uv run python scripts/make_readme_tables.py --check    # README tables == results/ files
 
 # phase 2 also needs PyTorch + braindecode; pick one torch build:
@@ -279,7 +279,7 @@ uv run python scripts/run_phase2.py --task cv3 --models shallow --gpu # sequenti
 uv run python scripts/permutation_test.py --model rbp_lr --n-perm 500
 ```
 
-Tasks are `cv3` (3-class), `legacy` (the old 18-subject split), `loso3`, `loso_ad_cn`, `loso_ftd_cn`, `cv_ad_cn`, `cv_ftd_cn` and `cv_ad_ftd`. Seeds are fixed (outer splits 2026 + 1000 · repeat, models 2026 + 17 · repeat + fold), and re-running a CPU model reproduces its `summary.json`. GPU training is deterministic up to floating-point reduction order.
+Tasks are `cv3` (3-class), `legacy` (the old 18-subject split), `loso3`, `loso_ad_cn`, `loso_ftd_cn`, `cv_ad_cn`, `cv_ftd_cn` and `cv_ad_ftd`. Seeds are fixed (outer splits 2026 + 1000 · repeat, models 2026 + 17 · repeat + fold), and re-running a CPU model reproduces the metrics in its `summary.json` exactly. GPU training is deterministic up to floating-point reduction order.
 
 **Runtimes** on the machine used (Intel i9-12900HX, 64 GB RAM, RTX 3080 Ti Laptop GPU with 16 GB; CPU work in 12 below-normal-priority processes, partly alongside other workloads):
 

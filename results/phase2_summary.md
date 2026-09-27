@@ -354,7 +354,7 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 
 ```bash
 uv sync --extra deep --extra cu128        # or: --extra deep --extra cpu (no GPU)
-uv run pytest                             # 27 tests
+uv run pytest                             # 27 tests at the time (37 after phase 3)
 # frozen embeddings are computed on first use and cached ($EEG_CACHE_DIR/embeddings)
 uv run python scripts/run_phase2.py --task cv3 --models eegnet,shallow,cbramod_ft --gpu
 uv run python scripts/run_phase2.py --task cv3 --models cbramod_lr,labram_lr,cbramod_spectral_lr,biot_lr --n-jobs 10
@@ -365,6 +365,7 @@ uv run python scripts/permutation_test.py --phase2 --model cbramod_lr --n-perm 5
 uv run python scripts/phase2_report.py --posthoc-members labram_lr,shallow
 ```
 
+- *Phase 3:* the whole sequence is now [`scripts/run_all_phase2.sh`](../scripts/run_all_phase2.sh). In phase 2 the BIOT embeddings were computed with an ad-hoc call of `deep.cached_embeddings`; `run_phase2.py` now computes them itself (same function, same cache file).
 - Weights are downloaded on first use from the URLs in `eegdementia/deep.py` (`PRETRAINED`) and checked against their sha256. Set `EEG_WEIGHTS_DIR` to change the location.
 - GPU runs are sequential and checkpointed per outer fold (`$EEG_CACHE_DIR/phase2_ckpt`), so an interrupted run resumes. `GpuGuard` (`eegdementia/gpu_guard.py`) runs before every fold and every 5 min during training.
 

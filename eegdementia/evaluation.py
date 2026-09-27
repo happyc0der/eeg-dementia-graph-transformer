@@ -62,7 +62,8 @@ class Dataset:
             assert len(v) == n, f"input {k} has {len(v)} rows, expected {n}"
         missing = set(np.unique(self.groups)) - set(self.subjects.index)
         assert not missing, f"epochs of unknown subjects: {sorted(missing)[:5]}"
-        self.subjects = self.subjects.loc[[s for s in self.subjects.index if s in set(self.groups)]]
+        present = set(np.unique(self.groups))
+        self.subjects = self.subjects.loc[[s for s in self.subjects.index if s in present]]
         lab = self.subjects["label"]
         self.y = lab.loc[self.groups].to_numpy()
 
@@ -73,7 +74,8 @@ class Dataset:
     def restrict(self, subjects: list[str], relabel: dict[int, int] | None = None, class_names=None) -> Dataset:
         """Subset of subjects (e.g. AD+CN for a binary task), optionally re-coding labels."""
         m = np.isin(self.groups, subjects)
-        st = self.subjects.loc[[s for s in self.subjects.index if s in set(subjects)]].copy()
+        keep = set(subjects)
+        st = self.subjects.loc[[s for s in self.subjects.index if s in keep]].copy()
         if relabel is not None:
             st["label"] = st["label"].map(relabel).astype(int)
         return Dataset(
@@ -342,7 +344,10 @@ def fit_predict(
 # --------------------------------------------------------------------------------------
 def _run_sequential_checkpointed(spec, ds, splits, inner_splits, seed, checkpoint_dir, before_fold):
     """Sequential variant of ``run_cv`` for GPU models: one pickle per finished outer fold,
-    so an interrupted run resumes where it stopped. Same seeds as the parallel path."""
+    so an interrupted run resumes where it stopped. Same seeds as the parallel path.
+
+    A checkpoint is only checked against its split's test subjects, not against the model's
+    settings: delete ``checkpoint_dir`` after changing a model, or its old folds are reused."""
     import pickle
 
     res = []

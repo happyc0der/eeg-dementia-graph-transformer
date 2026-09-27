@@ -97,7 +97,7 @@ There are 1,348 features per epoch. Each is computed from a single epoch, so ext
    - 3-class LOSO;
    - binary 5 × 10 repeated CV;
    - the legacy fixed split (70 train / 18 test; `LEGACY_TEST_SUBJECTS` reproduces pandas `sample(frac=0.8, random_state=42)`, which a unit test verifies).
-8. **Tests** (`tests/`, 19 tests, all passing):
+8. **Tests** (`tests/`, 19 tests at the end of phase 1, all passing):
    - `test_leakage.py` checks with spy estimators that no fit call, inner or final, ever sees a test subject; that inner-validation predictions only touch training subjects; that the same holds for ensembles, nested model selection and the `fit_groups` hook; that every subject is predicted once per repeat; that stratification, weights and aggregation behave as intended; and that the legacy split is reproduced.
    - `test_features.py` checks feature shapes, that relative power sums to 1, peak-frequency detection, SPD covariances, connectivity ranges, regional means and boundary/amplitude rejection.
 
@@ -162,6 +162,7 @@ Each cell is mean ± SD across repeats, with the bootstrap 95 % CI over subjects
 - The model the inner CV would choose (`nested_select`, 58.3 %) sits slightly below the best individual models. That is the expected optimism of picking the best outer-CV number, which is itself a winner's-curse selection, so treat 58-61 % as the realistic range.
 - Epoch-level balanced accuracy is 2-4 pp lower than subject level, because aggregating over about 130 epochs per subject averages out epoch noise.
 - Per class, CN is found reliably (recall 0.79-0.90, OvR AUC 0.87-0.90), and AD moderately (recall 0.58-0.72, AUC 0.73-0.78). FTD is poor (recall 0.26-0.45, AUC 0.63-0.68). FTD errors go mostly to AD.
+  *(Phase 3 check against the `summary.json` files: over the 13 EEG-only models at 58-61 %, the exact ranges are CN recall 0.77-0.90 and AUC 0.86-0.90, AD recall 0.58-0.72 and AUC 0.71-0.78, FTD recall 0.26-0.39 and AUC 0.57-0.68. The ranges above are approximate; FTD recall reaches 0.45 only for `riemann_ts_lr`, at 57.2 %.)*
 
 ### 6.2 Chance and permutation tests (`permutation/`)
 
@@ -407,7 +408,7 @@ summary = ev.summarise(res)                     # subject + epoch metrics, mean�
 
 ```bash
 uv sync                                # Python 3.12, locked deps
-uv run pytest                          # 19 tests
+uv run pytest                          # 19 tests at the time (37 after phase 3)
 bash scripts/run_all_phase1.sh         # caches, all experiments, permutation tests, figures (~15-20 h CPU)
 ```
 
