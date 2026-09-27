@@ -6,8 +6,8 @@ readme = "README.md"
 license = "Unlicense"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Keshav Rajput" },
     { name = "Subhrajit Dey" },
+    { name = "Keshav Rajput" },
     { name = "Sirish Visweswar" },
     { name = "terka2610" },
 ]
