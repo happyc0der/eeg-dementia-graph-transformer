@@ -16,13 +16,14 @@ from .config import CACHE_DIR, CHANNELS, RESULTS_DIR
 log = logging.getLogger(__name__)
 
 PHASE2_DIR = RESULTS_DIR / "phase2"
-FM_NAMES = ("cbramod", "labram")
-OPTIONAL_FM = ("biot",)  # exploratory extra (plan section 7); used when its embedding cache exists
+FM_NAMES = ("cbramod", "labram")  # pre-registered frozen foundation models
+EXPLORATORY_FM = ("biot",)  # optional extra (plan section 7), reported as exploratory
+RAW_INPUTS = ("raw", "raw125", "raw200")
 
 
 def _cached(f: Path, fn):
     if f.exists():
-        return np.load(f, mmap_mode=None)
+        return np.load(f)
     X = fn()
     f.parent.mkdir(parents=True, exist_ok=True)
     tmp = f.with_suffix(".tmp.npy")
@@ -31,11 +32,24 @@ def _cached(f: Path, fn):
     return X
 
 
-def build_phase2_dataset(raw: bool = False, embeddings: bool = True, device: str = "cuda", guard=None):
+def inputs_needed(specs: dict[str, M.ModelSpec], models: list[str]) -> set[str]:
+    """Names of the dataset inputs the given models read (their ``input`` + ``extra_inputs``)."""
+    need = set()
+    for m in models:
+        s = specs[m]
+        need |= {s.input, *s.extra_inputs}
+        for mem in s.members or []:
+            need |= {mem.input, *mem.extra_inputs}
+    return need
+
+
+def build_phase2_dataset(raw: bool = False, embeddings: tuple[str, ...] = FM_NAMES, device: str = "cuda", guard=None):
     """Phase-1 dataset plus phase-2 inputs.
 
     * ``raw`` (250 Hz), ``raw125`` (EEGNet), ``raw200`` (CBraMod fine-tuning) when ``raw=True``;
-    * ``emb_cbramod`` / ``emb_labram``: frozen embeddings (19 x 200) when ``embeddings=True``;
+    * ``emb_<name>`` for every name in ``embeddings`` (``cbramod``, ``labram``: 19 x 200 per
+      epoch; ``biot``: 256): frozen embeddings, read from ``$EEG_CACHE_DIR/embeddings`` or
+      computed there on first use (which needs the raw epochs and the pretrained weights);
     * ``spec_feat``: the 399 phase-1 spectral+aperiodic features (for hybrids).
     """
     from .config import PipelineConfig
@@ -43,21 +57,20 @@ def build_phase2_dataset(raw: bool = False, embeddings: bool = True, device: str
     cfg = PipelineConfig()
     key = f"{cfg.prep.key()}__{cfg.epoch.key()}"
     d = CACHE_DIR / "phase2" / key
-    emb_files = {m: deep.embedding_file(m, key, CACHE_DIR) for m in FM_NAMES}
-    need_raw = raw or (embeddings and not all(f.exists() for f in emb_files.values()))
+    unknown = set(embeddings) - set(FM_NAMES) - set(EXPLORATORY_FM)
+    if unknown:
+        raise ValueError(f"unknown foundation model(s): {sorted(unknown)}")
+    missing_emb = [m for m in embeddings if not deep.embedding_file(m, key, CACHE_DIR).exists()]
+    need_raw = raw or bool(missing_emb)
     ds = E.build_dataset(cfg, include_raw=need_raw)
     X200 = None
     if need_raw:
         X250 = ds.inputs["raw"]
         X200 = _cached(d / "raw200.npy", lambda: deep.resample_epochs(X250, 250.0, 200.0))
-    if embeddings:
-        for m in FM_NAMES:
-            ds.inputs[f"emb_{m}"] = deep.cached_embeddings(m, X200, key, CACHE_DIR, device=device, guard=guard)
-            assert len(ds.inputs[f"emb_{m}"]) == len(ds.groups)
-    for m in OPTIONAL_FM:
-        f = deep.embedding_file(m, key, CACHE_DIR)
-        if f.exists():
-            ds.inputs[f"emb_{m}"] = np.load(f)
+    for m in embeddings:
+        ds.inputs[f"emb_{m}"] = deep.cached_embeddings(m, X200, key, CACHE_DIR, device=device, guard=guard)
+        if len(ds.inputs[f"emb_{m}"]) != len(ds.groups):
+            raise RuntimeError(f"cached {m} embeddings do not match the epochs; delete them and recompute")
     if raw:
         ds.inputs["raw200"] = X200
         ds.inputs["raw125"] = _cached(d / "raw125.npy", lambda: deep.resample_epochs(ds.inputs["raw"], 250.0, 125.0))

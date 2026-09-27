@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import warnings
-from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -49,7 +48,7 @@ def band_powers(f: np.ndarray, P: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Absolute band power (n_ep, ch, n_bands) and total 0.5-45 Hz power (n_ep, ch)."""
     df = f[1] - f[0]
     out = []
-    for name, (lo, hi) in BANDS.items():
+    for lo, hi in BANDS.values():
         m = (f >= lo) & ((f < hi) if hi < FMAX else (f <= hi))
         out.append(P[..., m].sum(-1) * df)
     tot_m = (f >= FMIN) & (f <= FMAX)
@@ -330,22 +329,26 @@ class FeatureStore:
     """All epochs of all subjects, loaded from the feature cache.
 
     Attributes: ``X`` (n_epochs, n_features) float32, ``names``, ``cov`` (n_epochs, 6, 19, 19),
-    ``conn`` (n_epochs, 4, 5, 171), ``subject`` (n_epochs,) subject id per epoch,
+    ``subject`` (n_epochs,) subject id per epoch,
     ``epoch_stats`` per-subject epoch counts.
     """
 
-    def __init__(self, subjects: list[str], cfg: PipelineConfig, cache_dir: Path = CACHE_DIR, load_conn: bool = False):
+    def __init__(self, subjects: list[str], cfg: PipelineConfig, cache_dir: Path = CACHE_DIR):
         d = feature_cache_dir(cfg, cache_dir)
-        Xs, covs, conns, subj, stats = [], [], [], [], []
+        Xs, covs, subj, stats = [], [], [], []
         names = None
+        missing = [s for s in subjects if not (d / f"{s}.npz").exists()]
+        if missing:
+            raise FileNotFoundError(
+                f"{len(missing)} subjects have no cached features in {d} (e.g. {missing[0]}); "
+                "build them with scripts/build_cache.py (same --reference / --epoch-* flags)"
+            )
         for s in subjects:
             z = np.load(d / f"{s}.npz", allow_pickle=False)
             if names is None:
                 names = [str(n) for n in z["names"]]
             Xs.append(z["X"])
             covs.append(z["cov"])
-            if load_conn:
-                conns.append(z["conn"])
             subj.append(np.repeat(s, len(z["X"])))
             stats.append(
                 {
@@ -361,14 +364,7 @@ class FeatureStore:
         self.names = names
         self.X = np.concatenate(Xs)
         self.cov = np.concatenate(covs)
-        self.conn = np.concatenate(conns) if load_conn else None
         self.subject = np.concatenate(subj)
         import pandas as pd
 
         self.epoch_stats = pd.DataFrame(stats).set_index("subject")
-
-    def columns(self, pattern: str) -> np.ndarray:
-        import re
-
-        rx = re.compile(pattern)
-        return np.array([i for i, n in enumerate(self.names) if rx.search(n)], dtype=int)

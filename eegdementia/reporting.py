@@ -1,17 +1,16 @@
-"""Figures and tables for the phase-1 results (matplotlib, Agg backend, PNG)."""
+"""Figures (matplotlib, Agg backend, PNG), table formatting and reference numbers for results/."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-from sklearn.metrics import roc_curve  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.metrics import roc_curve
 
 # Colours: validated categorical slots 1-3 (blue, orange, aqua) for the three diagnoses,
 # muted greys for reference marks. Text always stays in ink colours.
@@ -41,10 +40,6 @@ plt.rcParams.update(
         "text.color": INK,
     }
 )
-
-
-def load_summary(d: Path) -> dict:
-    return json.loads((Path(d) / "summary.json").read_text())
 
 
 def comparison_chart(rows: list[dict], out: Path, title: str, xlabel: str = "Subject-level balanced accuracy",
@@ -127,8 +122,8 @@ def per_class_figure(summaries: dict[str, dict], class_names, out: Path, title: 
     for ax, met in zip(axes, metrics):
         ylabels = []
         k = 0
-        for mi, m in enumerate(models):
-            for ci, c in enumerate(class_names):
+        for _mi, m in enumerate(models):
+            for _ci, c in enumerate(class_names):
                 s = summaries[m]["subject"][f"{met}_{c}"]
                 ax.plot(s["ci95"], [k, k], color=CLASS_COLORS[c], lw=1.4)
                 ax.plot([s["mean"]], [k], "o", color=CLASS_COLORS[c], ms=5, mec="white", mew=1)
@@ -139,8 +134,8 @@ def per_class_figure(summaries: dict[str, dict], class_names, out: Path, title: 
         ax.set_xlim(0, 1)
         ax.axvline(0.5, color=MUTED, lw=0.8, ls="--")
     ypos, k = [], 0
-    for m in models:
-        for c in class_names:
+    for _m in models:
+        for _c in class_names:
             ypos.append(k)
             k += 1
         k += 0.6
@@ -194,3 +189,58 @@ def topomap_grid(values: dict[str, dict[str, np.ndarray]], ch_names, out: Path, 
     fig.suptitle(title, x=0.02, ha="left", fontsize=10)
     fig.savefig(out)
     plt.close(fig)
+
+
+# --------------------------------------------------------------------------------------
+# Reference numbers (used by figures, tables and the README; sources verified in
+# results/phase1_summary.md, section 6.4)
+# --------------------------------------------------------------------------------------
+# The April 2025 graph transformer (dim=128) on the legacy 18-subject split, chunk level
+# (legacy/results/spatial_spectral_dim128_20250405/reeval_matched_features/).
+OLD_MODEL = {"accuracy": 0.636, "balanced_accuracy": 0.622, "auc_AD": 0.79, "auc_CN": 0.84, "auc_FTD": 0.65}
+# Binary leave-one-subject-out accuracies from the literature on ds004504.
+LITERATURE = {
+    "loso_ad_cn": [
+        ("Miltiadous 2023 (Data), RF, RBP, epoch-level", 0.7701),
+        ("DICE-net 2023, epoch-level", 0.8328),
+        ("AHEPA benchmark 2026, mean of validity-1 studies", 0.8211),
+    ],
+    "loso_ftd_cn": [
+        ("Miltiadous 2023 (Data), MLP, RBP, epoch-level", 0.7312),
+        ("AHEPA benchmark 2026, mean of validity-1 studies", 0.7518),
+    ],
+}
+
+
+# --------------------------------------------------------------------------------------
+# Text formatting of summary.json metrics
+# --------------------------------------------------------------------------------------
+def fmt(s: dict, level: str, m: str, pct: bool = True, ci: bool = True) -> str:
+    """'mean ± sd [lo, hi]' of metric ``m`` at ``level`` of a summary.json (sd only if > 1 repeat)."""
+    d = s[level].get(m)
+    if d is None:
+        return ""
+    k = 100 if pct else 1
+    rep = s[level].get("n_repeats", 2) > 1
+    if pct:
+        out = f"{k * d['mean']:.1f}" + (f" ± {k * d['sd']:.1f}" if rep else "")
+    else:
+        out = f"{d['mean']:.3f}" + (f" ± {d['sd']:.3f}" if rep else "")
+    if ci and "ci95" in d:
+        lo, hi = d["ci95"]
+        out += f" [{k * lo:.1f}, {k * hi:.1f}]" if pct else f" [{lo:.3f}, {hi:.3f}]"
+    return out
+
+
+def md_table(df: pd.DataFrame) -> str:
+    """Markdown table: first column left-aligned, the others right-aligned."""
+    cols = list(df.columns)
+    lines = ["| " + " | ".join(cols) + " |", "|" + "|".join("---" if i == 0 else "---:" for i in range(len(cols))) + "|"]
+    for _, r in df.iterrows():
+        lines.append("| " + " | ".join(str(r[c]) for c in cols) + " |")
+    return "\n".join(lines)
+
+
+def write_text(path: Path, text: str) -> None:
+    """Write UTF-8 text with LF line endings on every OS."""
+    Path(path).write_text(text, encoding="utf-8", newline="\n")

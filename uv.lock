@@ -525,11 +525,9 @@ dependencies = [
     { name = "psutil" },
     { name = "pyarrow" },
     { name = "pyriemann" },
-    { name = "pyyaml" },
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "specparam" },
-    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -568,7 +566,6 @@ requires-dist = [
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pyarrow", specifier = ">=17" },
     { name = "pyriemann", specifier = ">=0.7" },
-    { name = "pyyaml", specifier = ">=6.0" },
     { name = "safetensors", marker = "extra == 'deep'", specifier = ">=0.4" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.13" },
@@ -577,7 +574,6 @@ requires-dist = [
     { name = "torch", marker = "extra == 'cu128'", specifier = "==2.11.*", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "eegdementia", extra = "cu128" } },
     { name = "torchaudio", marker = "extra == 'cpu'", specifier = "==2.11.*", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "eegdementia", extra = "cpu" } },
     { name = "torchaudio", marker = "extra == 'cu128'", specifier = "==2.11.*", index = "https://download.pytorch.org/whl/cu128", conflict = { package = "eegdementia", extra = "cu128" } },
-    { name = "tqdm", specifier = ">=4.66" },
 ]
 provides-extras = ["deep", "cpu", "cu128"]
 

@@ -1,9 +1,23 @@
 [project]
 name = "eegdementia"
 version = "0.2.0.dev0"
-description = "Leak-free, subject-level evaluation of AD / FTD / CN classification from resting-state EEG (OpenNeuro ds004504)"
+description = "Leak-free, subject-level evaluation of AD / FTD / CN classification from resting-state EEG (OpenNeuro ds004504): spectral features, Riemannian models, EEG foundation models and CNNs under one nested cross-validation harness"
 readme = "README.md"
-license = { text = "Unlicense" }
+license = "Unlicense"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Keshav Rajput" },
+    { name = "Subhrajit Dey" },
+    { name = "Sirish Visweswar" },
+    { name = "terka2610" },
+]
+keywords = ["EEG", "dementia", "Alzheimer's disease", "frontotemporal dementia", "ds004504", "cross-validation", "foundation models"]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Private :: Do Not Upload",
+]
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "numpy>=2.0",
@@ -16,12 +30,14 @@ dependencies = [
     "lightgbm>=4.5",
     "antropy>=0.1.6",
     "joblib>=1.4",
-    "pyarrow>=17",
+    "pyarrow>=17",       # parquet epoch-level predictions
     "matplotlib>=3.9",
-    "tqdm>=4.66",
-    "pyyaml>=6.0",
     "psutil>=7.2.2",
 ]
+
+[project.urls]
+Repository = "https://github.com/happyc0der/eeg-dementia-graph-transformer"
+Dataset = "https://openneuro.org/datasets/ds004504"
 
 [project.optional-dependencies]
 # Phase 2 deep models. Pick exactly one torch flavour:
@@ -68,3 +84,20 @@ packages = ["eegdementia"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.ruff]
+line-length = 130
+extend-exclude = ["legacy"]  # the Spring-2025 code is kept as it was
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+ignore = [
+    "E501",    # long lines: tables and formulas read better unwrapped
+    "B008",    # frozen (immutable) dataclass instances as argument defaults are fine
+    "RUF001",  # "Â±", "Âµ", "Î”" in strings are intended
+    "RUF002",
+    "RUF003",
+    "RUF005",  # list concatenation is clearer than unpacking here
+    "RUF046",  # int(round(x)) kept for readability
+    "B905",    # zip(strict=True) is used where lengths must match; elsewhere they match by construction
+]

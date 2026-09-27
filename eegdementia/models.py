@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin, clone
@@ -99,7 +99,7 @@ class BandTangentSpace(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X):
-        return np.concatenate([ts.transform(X[:, b].astype(np.float64)) for b, ts in zip(self.bands_, self.ts_)], axis=1)
+        return np.concatenate([ts.transform(X[:, b].astype(np.float64)) for b, ts in zip(self.bands_, self.ts_, strict=True)], axis=1)
 
 
 class BandMDM(BaseEstimator, ClassifierMixin):
@@ -118,7 +118,7 @@ class BandMDM(BaseEstimator, ClassifierMixin):
         return self
 
     def predict_proba(self, X):
-        d2 = sum(m.transform(X[:, b].astype(np.float64)) ** 2 for b, m in zip(self.bands_, self.mdms_))
+        d2 = sum(m.transform(X[:, b].astype(np.float64)) ** 2 for b, m in zip(self.bands_, self.mdms_, strict=True))
         # scale-free softmax: distances are divided by their per-sample mean
         return _softmax(-d2 / d2.mean(1, keepdims=True))
 
@@ -141,7 +141,7 @@ class ModelSpec:
     max_epochs_per_subject: int | None = None
     extra_inputs: tuple[str, ...] = ()  # appended columns (e.g. "demo" for age/sex)
     description: str = ""
-    members: list["ModelSpec"] | None = None  # ensemble / model-selection members
+    members: list[ModelSpec] | None = None  # ensemble / model-selection members
     combine: str = "vote"  # "vote" (soft voting) | "select" (nested choice of one member)
     fit_groups: bool = False  # pass groups=<subject id per training epoch> to fit()
 
@@ -269,11 +269,6 @@ def mdm_factory(params, n_classes, seed):
 
 def dummy_factory(params, n_classes, seed):
     return DummyClassifier(strategy="prior")
-
-
-def _pipe_sw(name):
-    """sample_weight routing name for a Pipeline whose final step is called ``clf``."""
-    return "clf__sample_weight"
 
 
 C_GRID = [{"C": c} for c in (1e-4, 1e-3, 1e-2, 1e-1, 1.0)]

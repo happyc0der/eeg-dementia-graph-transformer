@@ -1,5 +1,7 @@
 """Grouping / leakage guarantees of the evaluation harness."""
 
+from typing import ClassVar
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -206,7 +208,7 @@ def test_nested_model_selection_and_vote_never_see_test_subjects():
 
 
 class GroupSpy(Spy):
-    seen_groups = []
+    seen_groups: ClassVar[list] = []
 
     def fit(self, X, y, sample_weight=None, groups=None):
         GroupSpy.seen_groups.append(set(groups))

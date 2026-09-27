@@ -24,20 +24,15 @@ import copy
 import hashlib
 import json
 import logging
-import os
 import time
 from pathlib import Path
 
 import numpy as np
 
+from .config import CHANNELS, WEIGHTS_DIR  # CHANNELS: 10-20 names of ds004504 in stored order
 from .evaluation import aggregate_subjects, balanced_subject_weights
 
 log = logging.getLogger(__name__)
-
-WEIGHTS_DIR = Path(os.environ.get("EEG_WEIGHTS_DIR", "C:/AI/models/eeg-pretrained"))
-
-# 10-20 channel names of ds004504 in stored order (config.CHANNELS)
-from .config import CHANNELS  # noqa: E402
 
 # --------------------------------------------------------------------------------------
 # Pretrained weights: provenance (never committed to the repo)
@@ -294,13 +289,11 @@ class TorchEpochClassifier:
 
     Training (all settings fixed a priori, see results/phase2_plan.md):
 
-    * ``n_bags`` > 1 (default 5): the *training subjects passed to fit* are split into
-      ``n_bags`` class-stratified subject folds; one network is trained per fold on the other
-      folds and early-stopped on that fold (subject/class-balanced validation cross-entropy,
-      patience ``patience``, best state restored); predictions are the mean log-probability
-      of the ``n_bags`` networks. ``n_bags=1``: a single ``val_frac`` validation split
-      (optionally followed by ``refit`` on all training subjects for the early-stopped
-      number of epochs);
+    * "subject bagging": the *training subjects passed to fit* are split into ``n_bags``
+      (>= 2, default 5) class-stratified subject folds; one network is trained per fold on
+      the other folds and early-stopped on that fold (subject/class-balanced validation
+      cross-entropy, patience ``patience``, best state restored); predictions are the mean
+      log-probability of the ``n_bags`` networks;
     * each training epoch draws ``samples_per_subject`` x n_subjects windows with
       probability proportional to the balanced subject/class weights (so every subject and
       every class contributes equally in expectation), batches of ``batch_size``;
@@ -320,8 +313,6 @@ class TorchEpochClassifier:
         max_epochs: int = 40,
         patience: int = 8,
         samples_per_subject: int = 32,
-        val_frac: float = 0.2,
-        refit: bool = False,
         n_bags: int = 5,
         label_smoothing: float = 0.0,
         clip_grad: float | None = None,
@@ -342,8 +333,8 @@ class TorchEpochClassifier:
         self.max_epochs = max_epochs
         self.patience = patience
         self.samples_per_subject = samples_per_subject
-        self.val_frac = val_frac
-        self.refit = refit
+        if n_bags < 2:
+            raise ValueError("n_bags must be >= 2 (each bag early-stops on one subject fold)")
         self.n_bags = n_bags
         self.label_smoothing = label_smoothing
         self.clip_grad = clip_grad
@@ -403,8 +394,9 @@ class TorchEpochClassifier:
                 outs.append(model(xb).float().cpu())
         return torch.cat(outs)
 
-    def _train(self, X, y, groups, tr_idx, n_epochs, va_idx=None, seed=0):
-        """Train a fresh model on tr_idx for up to n_epochs (early stopping if va_idx)."""
+    def _train(self, X, y, groups, tr_idx, va_idx, seed=0):
+        """Train a fresh model on ``tr_idx`` for up to ``max_epochs``, early-stopped on the
+        subject/class-balanced cross-entropy of ``va_idx``; returns (best model, best epoch, history)."""
         torch = _torch()
         F = torch.nn.functional
         self._seed_all(seed)
@@ -416,13 +408,12 @@ class TorchEpochClassifier:
         n_subj = len(np.unique(groups[tr_idx]))
         n_draw = self.samples_per_subject * n_subj
         rng = np.random.default_rng(seed)
-        yt = torch.from_numpy(y).long()
-        if va_idx is not None:
-            wv = torch.from_numpy(balanced_subject_weights(groups[va_idx], y[va_idx])).float()
+        yt = torch.tensor(y, dtype=torch.long)  # copy: y may be a read-only view
+        wv = torch.from_numpy(balanced_subject_weights(groups[va_idx], y[va_idx])).float()
         best = (np.inf, 0, None)
         hist = []
         bad = 0
-        for ep in range(n_epochs):
+        for ep in range(self.max_epochs):
             self._guard(model, f"{self.name} seed {seed} epoch {ep}")
             model.train()
             draw = rng.choice(tr_idx, size=n_draw, replace=True, p=p)
@@ -442,45 +433,36 @@ class TorchEpochClassifier:
                 nb += 1
             sched.step()
             rec = {"epoch": ep + 1, "train_loss": tl / max(nb, 1), "sec": round(time.time() - t0, 1)}
-            if va_idx is not None:
-                lo = self._logits(model, X, va_idx)
-                ce = F.cross_entropy(lo, yt[va_idx], reduction="none")
-                vloss = float((ce * wv).sum() / wv.sum())
-                sids, P = aggregate_subjects(torch.softmax(lo, 1).numpy(), groups[va_idx])
-                ys = np.array([y[va_idx][groups[va_idx] == s][0] for s in sids])
-                rec_s = [np.mean(P[ys == c].argmax(1) == c) for c in np.unique(ys)]
-                rec.update(val_loss=vloss, val_subject_bal_acc=float(np.mean(rec_s)))
-                if vloss < best[0] - 1e-4:
-                    best = (vloss, ep + 1, copy.deepcopy({k: v.detach().cpu() for k, v in model.state_dict().items()}))
-                    bad = 0
-                else:
-                    bad += 1
+            lo = self._logits(model, X, va_idx)
+            ce = F.cross_entropy(lo, yt[va_idx], reduction="none")
+            vloss = float((ce * wv).sum() / wv.sum())
+            sids, P = aggregate_subjects(torch.softmax(lo, 1).numpy(), groups[va_idx])
+            ys = np.array([y[va_idx][groups[va_idx] == s][0] for s in sids])
+            rec_s = [np.mean(P[ys == c].argmax(1) == c) for c in np.unique(ys)]
+            rec.update(val_loss=vloss, val_subject_bal_acc=float(np.mean(rec_s)))
+            if vloss < best[0] - 1e-4:
+                best = (vloss, ep + 1, copy.deepcopy({k: v.detach().cpu() for k, v in model.state_dict().items()}))
+                bad = 0
+            else:
+                bad += 1
             hist.append(rec)
             log.debug("%s %s", self.name, rec)
-            if va_idx is not None and bad >= self.patience:
+            if bad >= self.patience:
                 break
-        if va_idx is not None:
-            model.load_state_dict(best[2])
-            return model, best[1], hist
-        return model, n_epochs, hist
+        if best[2] is None:  # validation loss never finite (diverged): fail loudly, never guess
+            raise FloatingPointError(f"{self.name}: no finite validation loss in {self.max_epochs} epochs (seed {seed})")
+        model.load_state_dict(best[2])
+        return model, best[1], hist
 
     # ---------------------------------------------------------------- API
     def _val_splits(self, groups, y):
         """Subject-level validation sets carved from the training subjects given to fit."""
+        from sklearn.model_selection import StratifiedKFold
+
         subs = np.unique(groups)
         sub_y = np.array([y[groups == s][0] for s in subs])
-        if self.n_bags > 1:
-            from sklearn.model_selection import StratifiedKFold
-
-            skf = StratifiedKFold(n_splits=self.n_bags, shuffle=True, random_state=(self.seed + 991) % (2**31))
-            return [set(subs[va]) for _, va in skf.split(subs, sub_y)]
-        rng = np.random.default_rng(self.seed + 991)
-        val = []
-        for c in np.unique(sub_y):
-            sc = subs[sub_y == c]
-            k = max(1, int(round(self.val_frac * len(sc))))
-            val += list(rng.choice(sc, k, replace=False))
-        return [set(val)]
+        skf = StratifiedKFold(n_splits=self.n_bags, shuffle=True, random_state=(self.seed + 991) % (2**31))
+        return [set(subs[va]) for _, va in skf.split(subs, sub_y)]
 
     def fit(self, X, y, sample_weight=None, groups=None):
         if groups is None:
@@ -494,11 +476,7 @@ class TorchEpochClassifier:
             is_val = np.fromiter((g in val for g in groups), bool, len(groups))
             tr_idx, va_idx = np.flatnonzero(~is_val), np.flatnonzero(is_val)
             assert len(va_idx) and not set(groups[tr_idx]) & set(groups[va_idx])
-            model, best_ep, hist = self._train(X, y, groups, tr_idx, self.max_epochs, va_idx, seed=self.seed + 7919 * b)
-            if self.refit:
-                del model
-                torch.cuda.empty_cache()
-                model, _, _ = self._train(X, y, groups, np.arange(len(y)), max(best_ep, 1), None, seed=self.seed + 7919 * b + 1)
+            model, best_ep, hist = self._train(X, y, groups, tr_idx, va_idx, seed=self.seed + 7919 * b)
             model.to("cpu")
             self.models_.append(model)
             self.best_epochs_.append(best_ep)
@@ -508,8 +486,8 @@ class TorchEpochClassifier:
         self.fit_time_ = time.time() - t0
         if self.history_log is not None:
             with open(self.history_log, "a") as fh:
-                fh.write(json.dumps({"name": self.name, "seed": self.seed, "n_train_subjects": int(len(np.unique(groups))),
-                                     "fit_time_s": round(self.fit_time_, 1), "refit": self.refit, "n_bags": self.n_bags,
+                fh.write(json.dumps({"name": self.name, "seed": self.seed, "n_train_subjects": len(np.unique(groups)),
+                                     "fit_time_s": round(self.fit_time_, 1), "n_bags": self.n_bags,
                                      "bags": logs}) + "\n")
         return self
 

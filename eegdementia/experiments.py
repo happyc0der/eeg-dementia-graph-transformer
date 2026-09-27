@@ -168,8 +168,8 @@ def save_result(
         "model": model,
         "description": description,
         "class_names": cn,
-        "n_subjects": int(len(tds.subjects)),
-        "n_epochs": int(len(tds.groups)),
+        "n_subjects": len(tds.subjects),
+        "n_epochs": len(tds.groups),
         "n_outer_splits": n_outer_splits,
         "selection_criterion": "pooled inner-OOF subject-level balanced accuracy, ties -> macro OvR AUC",
         "aggregation": "subject probability = softmax(mean epoch log-probability)",
@@ -180,26 +180,13 @@ def save_result(
         **(extra_meta or {}),
     }
     summ = {**meta, **summ}
-    (outdir / "summary.json").write_text(json.dumps(summ, indent=2))
+    (outdir / "summary.json").write_text(json.dumps(summ, indent=2), newline="\n")
     return summ
 
 
-def collect_summaries(task_dir: Path) -> pd.DataFrame:
-    rows = []
-    for f in sorted(Path(task_dir).glob("*/summary.json")):
-        s = json.loads(f.read_text())
-        row = {"model": s["model"], "description": s["description"], "runtime_s": s["runtime_s"]}
-        for level in ("subject", "epoch"):
-            for m in ("balanced_accuracy", "accuracy", "macro_f1", "macro_auc"):
-                if m in s[level]:
-                    row[f"{level}_{m}_mean"] = s[level][m]["mean"]
-                    row[f"{level}_{m}_sd"] = s[level][m]["sd"]
-                    if "ci95" in s[level][m]:
-                        row[f"{level}_{m}_ci_lo"], row[f"{level}_{m}_ci_hi"] = s[level][m]["ci95"]
-            for c in s["class_names"]:
-                for k in ("recall", "specificity", "auc"):
-                    key = f"{k}_{c}"
-                    if key in s[level]:
-                        row[f"{level}_{key}_mean"] = s[level][key]["mean"]
-        rows.append(row)
-    return pd.DataFrame(rows)
+def epoch_counts(cfg: PipelineConfig = PipelineConfig()) -> pd.DataFrame:
+    """Per-subject epoch yield of a cached pipeline configuration (candidates, rejections, kept)."""
+    subs = load_participants()
+    st = FeatureStore(list(subs.index), cfg).epoch_stats.copy()
+    st.insert(0, "diagnosis", subs.loc[st.index, "diagnosis"])
+    return st

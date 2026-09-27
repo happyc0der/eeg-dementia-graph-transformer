@@ -43,7 +43,10 @@ def load_participants(bids_root: Path = BIDS_ROOT) -> pd.DataFrame:
 
     MMSE is deliberately dropped: it is (close to) the diagnostic label itself.
     """
-    df = pd.read_csv(Path(bids_root) / "participants.tsv", sep="\t")
+    f = Path(bids_root) / "participants.tsv"
+    if not f.exists():
+        raise FileNotFoundError(f"{f} not found: download OpenNeuro ds004504 (README, 'Data') and set EEG_BIDS_ROOT")
+    df = pd.read_csv(f, sep="\t")
     out = pd.DataFrame(
         {
             "group": df["Group"].values,
@@ -84,7 +87,7 @@ def _preprocess_from_file(subject: str, cfg: PrepConfig, bids_root: Path) -> Rec
     dur = raw.n_times / sf0
     # EEGLAB "boundary" events mark where ASR cut data out (discontinuities).
     ann = raw.annotations
-    bnd_t = np.array([o for o, d in zip(ann.onset, ann.description) if "boundary" in d.lower()])
+    bnd_t = np.array([o for o, d in zip(ann.onset, ann.description, strict=True) if "boundary" in d.lower()])
 
     tmin, tmax = cfg.crop_start_s, dur - cfg.crop_end_s
     if tmax - tmin < 60:

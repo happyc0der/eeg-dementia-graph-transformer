@@ -1,54 +1,23 @@
 """Build tables (CSV + markdown) and figures from results/*.
 
-    uv run python scripts/make_figures.py --best spectral_lr
+    uv run python scripts/make_figures.py --best ensemble_vote --compare rbp_lr,spectral_lr,all_lgbm,ensemble_vote,nested_select
 """
 
 import argparse
 import json
-from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
-from eegdementia import experiments as E
 from eegdementia import reporting as R
 from eegdementia.config import RESULTS_DIR
+from eegdementia.reporting import fmt, md_table
 
 FIG = RESULTS_DIR / "figures"
 TAB = RESULTS_DIR / "tables"
-
-# Old (April 2025) graph transformer on the legacy split, chunk level (README / results/).
-OLD = {"accuracy": 0.636, "balanced_accuracy": 0.622, "auc_AD": 0.79, "auc_CN": 0.84, "auc_FTD": 0.65}
-# Literature (verified from the papers, see phase1_summary.md for references).
-LIT = {
-    "loso_ad_cn": [
-        ("Miltiadous 2023 (Data), RF, RBP, epoch-level", 0.7701),
-        ("DICE-net 2023, epoch-level", 0.8328),
-        ("AHEPA benchmark 2026, mean of validity-1 studies", 0.8211),
-    ],
-    "loso_ftd_cn": [
-        ("Miltiadous 2023 (Data), MLP, RBP, epoch-level", 0.7312),
-        ("AHEPA benchmark 2026, mean of validity-1 studies", 0.7518),
-    ],
-}
+OLD = R.OLD_MODEL  # the April 2025 graph transformer on the legacy split (chunk level)
+LIT = R.LITERATURE  # binary LOSO literature numbers (verified, see phase1_summary.md 6.4)
 
 EEG_ONLY_EXCLUDE = {"age_lr", "age_sex_lr", "spectral_lr+age_sex", "all_lr+age_sex", "chance_prior"}
-
-
-def fmt(s, level, m, pct=True, ci=True):
-    d = s[level].get(m)
-    if d is None:
-        return ""
-    k = 100 if pct else 1
-    rep = s[level].get("n_repeats", 2) > 1
-    if pct:
-        out = f"{k * d['mean']:.1f}" + (f" ± {k * d['sd']:.1f}" if rep else "")
-    else:
-        out = f"{d['mean']:.3f}" + (f" ± {d['sd']:.3f}" if rep else "")
-    if ci and "ci95" in d:
-        lo, hi = d["ci95"]
-        out += f" [{k * lo:.1f}, {k * hi:.1f}]" if pct else f" [{lo:.3f}, {hi:.3f}]"
-    return out
 
 
 def load_task(task):
@@ -56,15 +25,7 @@ def load_task(task):
     return {p.parent.name: json.loads(p.read_text()) for p in sorted(d.glob("*/summary.json"))} if d.exists() else {}
 
 
-def md_table(df: pd.DataFrame) -> str:
-    cols = list(df.columns)
-    lines = ["| " + " | ".join(cols) + " |", "|" + "|".join("---" if i == 0 else "---:" for i in range(len(cols))) + "|"]
-    for _, r in df.iterrows():
-        lines.append("| " + " | ".join(str(r[c]) for c in cols) + " |")
-    return "\n".join(lines)
-
-
-def table_multiclass(task, S, order=None):
+def table_multiclass(task, S):
     rows = []
     for m, s in S.items():
         rows.append({
@@ -81,7 +42,7 @@ def table_multiclass(task, S, order=None):
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
     df.to_csv(TAB / f"{task}.csv", index=False)
-    (TAB / f"{task}.md").write_text(md_table(df), encoding="utf-8")
+    R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
 
@@ -104,7 +65,7 @@ def table_binary(task, S):
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
     df.to_csv(TAB / f"{task}.csv", index=False)
-    (TAB / f"{task}.md").write_text(md_table(df), encoding="utf-8")
+    R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
 

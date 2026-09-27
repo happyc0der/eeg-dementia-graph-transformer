@@ -21,14 +21,12 @@ A model is anything with ``fit(X, y, sample_weight=None)`` and ``predict_proba(X
 
 from __future__ import annotations
 
-import itertools
 import json
 import logging
-import os
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -72,7 +70,7 @@ class Dataset:
     def n_classes(self) -> int:
         return len(self.class_names)
 
-    def restrict(self, subjects: list[str], relabel: dict[int, int] | None = None, class_names=None) -> "Dataset":
+    def restrict(self, subjects: list[str], relabel: dict[int, int] | None = None, class_names=None) -> Dataset:
         """Subset of subjects (e.g. AD+CN for a binary task), optionally re-coding labels."""
         m = np.isin(self.groups, subjects)
         st = self.subjects.loc[[s for s in self.subjects.index if s in set(subjects)]].copy()
@@ -86,12 +84,12 @@ class Dataset:
             class_names or self.class_names,
         )
 
-    def with_permuted_labels(self, rng: np.random.Generator) -> "Dataset":
+    def with_permuted_labels(self, rng: np.random.Generator) -> Dataset:
         st = self.subjects.copy()
         st["label"] = rng.permutation(st["label"].to_numpy())
         return Dataset(self.inputs, self.groups, st, self.feature_names, self.class_names)
 
-    def subject_mean(self) -> "Dataset":
+    def subject_mean(self) -> Dataset:
         """One row per subject: mean of every input over that subject's epochs."""
         subs = list(self.subjects.index)
         inputs = {}
@@ -146,7 +144,7 @@ def check_split(split: Split) -> None:
 # --------------------------------------------------------------------------------------
 def balanced_subject_weights(groups: np.ndarray, y: np.ndarray) -> np.ndarray:
     """Each subject gets equal total weight within its class; each class equal total weight."""
-    subj, inv, counts = np.unique(groups, return_inverse=True, return_counts=True)
+    _, inv, counts = np.unique(groups, return_inverse=True, return_counts=True)
     w = 1.0 / counts[inv]
     subj_label = pd.Series(y).groupby(groups).first()
     n_per_class = subj_label.value_counts()
@@ -189,7 +187,7 @@ def metrics_from_proba(y: np.ndarray, proba: np.ndarray, class_names: list[str])
         "accuracy": float(tp.sum() / cm.sum()),
         "macro_f1": float(f1.mean()),
         "log_loss": float(-np.mean(np.log(np.clip(proba[np.arange(len(y)), y], EPS, 1)))),
-        "n": int(len(y)),
+        "n": len(y),
     }
     for i, c in enumerate(class_names):
         out[f"recall_{c}"] = float(recall[i])
@@ -290,7 +288,7 @@ def fit_predict(
         return {
             "proba": p,
             "test_idx": parts[0]["test_idx"],
-            "params": {m.name: q["params"] for m, q in zip(members, parts)},
+            "params": {m.name: q["params"] for m, q in zip(members, parts, strict=True)},
             "inner": None,
         }
 
@@ -316,7 +314,7 @@ def fit_predict(
             for ci, (cs, params) in enumerate(candidates):
                 p, _ = _fit_and_predict(cs, params, ds, itr, iva, seed)
                 sids, sp = aggregate_subjects(p, ds.groups[iva])
-                oof[ci].update(dict(zip(sids, sp)))
+                oof[ci].update(dict(zip(sids, sp, strict=True)))
         ys = tr_subj["label"]
         for ci, (cs, params) in enumerate(candidates):
             sids = list(oof[ci])
@@ -404,7 +402,7 @@ def run_cv(
     if res and all("fold_time_s" in r for r in res):
         runtime = float(sum(r["fold_time_s"] for r in res))  # compute time, excluding pauses / resumes
     ep_rows, subj_rows = [], []
-    for sp, r in zip(splits, res):
+    for sp, r in zip(splits, res, strict=True):
         te = r["test_idx"]
         g = ds.groups[te]
         ep_rows.append(
@@ -572,7 +570,13 @@ def permutation_test(
     """Subject-label permutation test of the *whole* nested pipeline.
 
     Labels are permuted across subjects (all epochs of a subject keep one label), then the
-    complete nested CV is rerun. ``observed`` must be computed with the same ``n_repeats``.
+    complete nested CV (``n_repeats`` x ``n_splits`` outer folds, fresh splits per
+    permutation) is rerun. Each null value is the mean over those ``n_repeats``.
+
+    ``p = (1 + #{null >= observed}) / (1 + n_perm)``. The scripts compare the *10-repeat*
+    observed mean with a *1-repeat* null (``n_repeats=1``, for cost). A single-repeat score
+    varies more than a 10-repeat mean, so the null is wider than the matching one and the
+    p-value is conservative (too large), never optimistic.
     """
     from joblib import Parallel, delayed
 
@@ -589,7 +593,7 @@ def permutation_test(
     for pi in range(n_perm):
         pds = perm_ds[pi]
         rep_scores = {}
-        for (pj, sp), r in zip(jobs, res):
+        for (pj, sp), r in zip(jobs, res, strict=True):
             if pj != pi:
                 continue
             sids, P = aggregate_subjects(r["proba"], pds.groups[r["test_idx"]])

@@ -16,7 +16,14 @@ A foreign user is any of:
 * an ``nvidia-smi`` compute ("C") process that is not ours;
 * a Docker container that was not already running when the guard was created.
 
-On machines without ``model-status`` only the ``nvidia-smi`` checks are used.
+``model-status`` is the owner's status script: ``$MODEL_STATUS_CMD`` if set, else
+``model-status`` on ``PATH``. Without it only the ``nvidia-smi`` checks are used. If
+``model-status`` fails or times out, the failure itself is a reason to wait: the owner's
+jobs win when we cannot tell.
+
+False positives: a reason that is *only* GPU utilisation is re-checked 30 s later before
+pausing, because the first utilisation sample after one of our own folds can still contain
+our own load (this caused one self-inflicted pause in phase 2).
 """
 
 from __future__ import annotations
@@ -33,7 +40,17 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-MODEL_STATUS = Path(os.environ.get("MODEL_STATUS_CMD", r"C:\AI\bin\model-status.cmd"))
+FAILED = "<failed"
+UTIL_REASON = "GPU utilisation"
+
+
+def find_model_status() -> Path | None:
+    """``$MODEL_STATUS_CMD`` if set, else ``model-status`` found on ``PATH`` (or None)."""
+    env = os.environ.get("MODEL_STATUS_CMD")
+    if env:
+        return Path(env)
+    found = shutil.which("model-status")
+    return Path(found) if found else None
 
 
 def _own_pids() -> set[int]:
@@ -44,17 +61,17 @@ def _own_pids() -> set[int]:
         p = psutil.Process()
         pids |= {q.pid for q in p.parents()}
         pids |= {q.pid for q in p.children(recursive=True)}
-    except Exception:  # pragma: no cover
-        pass
+    except (ImportError, OSError) as e:  # pragma: no cover
+        log.warning("could not list parent/child processes: %s", e)
     return pids
 
 
 def _run(cmd: list[str], timeout: float = 60.0) -> str:
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, errors="replace")
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, errors="replace", check=False)
         return r.stdout + "\n" + r.stderr
-    except Exception as e:  # pragma: no cover - reported as a reason, never swallowed silently
-        return f"<failed: {e}>"
+    except (OSError, subprocess.SubprocessError) as e:  # returned as text; the caller reports it
+        return f"{FAILED}: {e}>"
 
 
 def parse_model_status(text: str, own: set[int], docker_baseline: set[str]) -> list[str]:
@@ -64,7 +81,7 @@ def parse_model_status(text: str, own: set[int], docker_baseline: set[str]) -> l
         s = line.strip()
         m = re.match(r"GPU\s+(\d+)% busy", s)
         if m and int(m.group(1)) >= 15:
-            reasons.append(f"GPU utilisation {m.group(1)}% while we are idle")
+            reasons.append(f"{UTIL_REASON} {m.group(1)}% while we are idle")
         if s.startswith("Ollama") and "no model loaded" not in s:
             reasons.append(f"Ollama model loaded: {s}")
         if s.startswith("llama.cpp"):
@@ -98,38 +115,53 @@ def parse_nvidia_smi(text: str, own: set[int]) -> list[str]:
 class GpuGuard:
     poll_s: float = 600.0
     min_interval_s: float = 300.0  # for periodic in-training checks
+    confirm_s: float = 30.0  # re-check delay for utilisation-only reasons
     pause_log: Path | None = None
     use_model_status: bool = True
+    model_status: Path | None = None
     docker_baseline: set[str] = field(default_factory=set)
     _last_check: float = 0.0
     pauses: list[dict] = field(default_factory=list)
 
     def __post_init__(self):
-        if self.use_model_status and not MODEL_STATUS.exists():
-            self.use_model_status = False
+        if self.use_model_status:
+            self.model_status = self.model_status or find_model_status()
+            if self.model_status is None or not Path(self.model_status).exists():
+                self.use_model_status = False
         if not self.docker_baseline and shutil.which("docker"):
             out = _run(["docker", "ps", "--format", "{{.Names}}"], timeout=30)
-            if not out.startswith("<failed"):
+            if not out.startswith(FAILED):
                 self.docker_baseline = {x.strip() for x in out.splitlines() if x.strip() and "error" not in x.lower()}
-        log.info("GPU guard active (model-status: %s, docker baseline: %s)", self.use_model_status, sorted(self.docker_baseline))
+        log.info("GPU guard active (model-status: %s, docker baseline: %s)",
+                 self.model_status if self.use_model_status else None, sorted(self.docker_baseline))
 
     def reasons(self) -> list[str]:
         own = _own_pids()
         reasons = []
         if self.use_model_status:
-            reasons += parse_model_status(_run(["cmd", "/c", str(MODEL_STATUS)], timeout=120), own, self.docker_baseline)
+            cmd = [str(self.model_status)]
+            if Path(self.model_status).suffix.lower() in (".cmd", ".bat"):
+                cmd = ["cmd", "/c", *cmd]
+            out = _run(cmd, timeout=120)
+            if out.startswith(FAILED):
+                reasons.append(f"model-status failed, cannot tell whether the GPU is free: {out}")
+            else:
+                reasons += parse_model_status(out, own, self.docker_baseline)
         if shutil.which("nvidia-smi"):
-            reasons += parse_nvidia_smi(_run(["nvidia-smi"]), own)
+            out = _run(["nvidia-smi"])
+            if out.startswith(FAILED):
+                log.warning("nvidia-smi failed: %s", out)
+            reasons += parse_nvidia_smi(out, own)
         self._last_check = time.time()
         return reasons
 
     def _confirmed_reasons(self) -> list[str]:
-        """``reasons()``, but a pure GPU-utilisation reason must persist 30 s later: the first
-        utilisation sample right after our own kernels finish still contains our own load."""
+        """``reasons()``, but a pure GPU-utilisation reason must persist ``confirm_s`` later: the
+        first utilisation sample right after our own kernels finish still contains our own load."""
         time.sleep(3)
         r = self.reasons()
-        if r and all(x.startswith("GPU utilisation") for x in r):
-            time.sleep(30)
+        if r and all(x.startswith(UTIL_REASON) for x in r):
+            time.sleep(self.confirm_s)
             r = self.reasons()
         return r
 
@@ -139,7 +171,7 @@ class GpuGuard:
         if not r:
             return 0.0
         t0 = time.time()
-        log.warning("GPU busy (%s) -> pausing %s: %s", context, "", "; ".join(r))
+        log.warning("GPU busy (%s) -> pausing: %s", context, "; ".join(r))
         if on_pause is not None:
             on_pause()
         first = r

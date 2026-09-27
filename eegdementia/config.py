@@ -1,10 +1,14 @@
 """Paths, dataset constants and preprocessing / epoching configuration.
 
-Paths can be overridden with environment variables:
+Paths are set with environment variables (read once, at import time):
 
-* ``EEG_BIDS_ROOT``  - root of OpenNeuro ds004504 (default ``C:/AI/datasets/ds004504``)
-* ``EEG_CACHE_DIR``  - where preprocessed recordings / features are cached
-  (default ``<parent of BIDS root>/cache``)
+* ``EEG_BIDS_ROOT``   - root of OpenNeuro ds004504 (default ``<repo>/data/ds004504``)
+* ``EEG_CACHE_DIR``   - preprocessed recordings, features, frozen embeddings, epoch-level
+  predictions and GPU checkpoints (default ``<parent of EEG_BIDS_ROOT>/cache``)
+* ``EEG_WEIGHTS_DIR`` - pretrained foundation-model weights, phase 2 only
+  (default ``<repo>/data/weights``)
+
+``<repo>/data/`` is git-ignored; nothing in the repository depends on where these live.
 """
 
 from __future__ import annotations
@@ -19,8 +23,9 @@ from pathlib import Path
 # Paths
 # --------------------------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BIDS_ROOT = Path(os.environ.get("EEG_BIDS_ROOT", "C:/AI/datasets/ds004504"))
+BIDS_ROOT = Path(os.environ.get("EEG_BIDS_ROOT", str(REPO_ROOT / "data" / "ds004504")))
 CACHE_DIR = Path(os.environ.get("EEG_CACHE_DIR", str(BIDS_ROOT.parent / "cache")))
+WEIGHTS_DIR = Path(os.environ.get("EEG_WEIGHTS_DIR", str(REPO_ROOT / "data" / "weights")))
 RESULTS_DIR = REPO_ROOT / "results"
 
 # --------------------------------------------------------------------------------------

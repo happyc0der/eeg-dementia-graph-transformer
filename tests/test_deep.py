@@ -1,7 +1,6 @@
 """Phase-2 deep-model wrapper and combination helpers (CPU, tiny synthetic data)."""
 
 import numpy as np
-import pandas as pd
 import pytest
 
 from eegdementia import evaluation as ev
@@ -39,10 +38,10 @@ SEEN = {"train": [], "val": []}
 
 
 class SpyClassifier(deep.TorchEpochClassifier):
-    def _train(self, X, y, groups, tr_idx, n_epochs, va_idx=None, seed=0):
+    def _train(self, X, y, groups, tr_idx, va_idx, seed=0):
         SEEN["train"].append(set(np.asarray(groups)[tr_idx]))
-        SEEN["val"].append(set(np.asarray(groups)[va_idx]) if va_idx is not None else set())
-        return super()._train(X, y, groups, tr_idx, n_epochs, va_idx, seed)
+        SEEN["val"].append(set(np.asarray(groups)[va_idx]))
+        return super()._train(X, y, groups, tr_idx, va_idx, seed)
 
 
 def test_torch_wrapper_never_sees_test_subjects_and_bags_partition_training():
@@ -134,3 +133,27 @@ def test_biot_bipolar_input_is_reference_free_and_normalised():
     common = rng.normal(size=(4, 1, 2000)).astype(np.float32) * 50
     np.testing.assert_allclose(deep.biot_input(X + common), B, atol=1e-4)
     np.testing.assert_allclose(np.quantile(np.abs(B), 0.95, axis=-1), 1.0, atol=1e-3)
+
+
+def test_torch_wrapper_rejects_single_bag_and_fails_loudly_on_divergence():
+    with pytest.raises(ValueError):
+        deep.TorchEpochClassifier(lambda: TinyNet(3), 3, 0, n_bags=1, device="cpu")
+
+    class NaNNet(TinyNet):
+        def forward(self, x):
+            return super().forward(x) * float("nan")
+
+    ds = _raw_dataset()
+    clf = deep.TorchEpochClassifier(lambda: NaNNet(3), 3, 0, max_epochs=2, patience=5, samples_per_subject=2,
+                                    n_bags=2, device="cpu")
+    with pytest.raises(FloatingPointError):
+        clf.fit(ds.inputs["raw"], ds.y, groups=ds.groups)
+
+
+def test_inputs_needed_selects_raw_and_embeddings():
+    P2 = pytest.importorskip("eegdementia.phase2")
+    specs = P2.phase2_specs()
+    assert P2.inputs_needed(specs, ["cbramod_lr"]) == {"emb_cbramod"}
+    assert P2.inputs_needed(specs, ["cbramod_spectral_lr"]) == {"emb_cbramod", "spec_feat"}
+    assert P2.inputs_needed(specs, ["eegnet", "shallow", "cbramod_ft"]) == {"raw125", "raw", "raw200"}
+    assert P2.inputs_needed(specs, ["biot_lr"]) == {"emb_biot"}

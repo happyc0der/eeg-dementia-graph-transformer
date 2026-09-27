@@ -10,7 +10,6 @@ cv_ad_cn / cv_ftd_cn / cv_ad_ftd (binary repeated nested CV).
 """
 
 import argparse
-import os
 import sys
 import time
 
@@ -30,7 +29,7 @@ def main():
     ap.add_argument("--inner-splits", type=int, default=5)
     ap.add_argument("--n-jobs", type=int, default=12)
     ap.add_argument("--n-boot", type=int, default=2000)
-    ap.add_argument("--reference", default="average")
+    ap.add_argument("--reference", default="average", choices=["average", "native"])
     ap.add_argument("--epoch-length", type=float, default=10.0)
     ap.add_argument("--epoch-step", type=float, default=5.0)
     ap.add_argument("--keep-boundaries", action="store_true",

@@ -14,7 +14,6 @@ C. Standardised multinomial LR coefficients (spectral_lr refit on all subjects, 
 
 import argparse
 import json
-import os
 import re
 
 from eegdementia.utils import be_nice

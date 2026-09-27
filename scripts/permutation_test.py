@@ -1,16 +1,17 @@
 """Subject-label permutation test of a whole nested pipeline (3-class task).
 
 The observed statistic is the mean subject-level balanced accuracy over the 10 repeats of
-the main cv3 run. Each permutation reruns the complete nested 5-fold CV once (1 repeat)
-with shuffled subject labels. A single-repeat null is wider than the null of a 10-repeat
-mean, so the p-value is conservative.
+the main cv3 run (read from results/[phase2/]cv3/<model>/summary.json). Each permutation
+reruns the complete nested 5-fold CV once (1 repeat) with shuffled subject labels. A
+single-repeat null is wider than the null of a 10-repeat mean, so the p-value is
+conservative.
 
     uv run python scripts/permutation_test.py --model spectral_lr --n-perm 100
+    uv run python scripts/permutation_test.py --phase2 --model cbramod_lr --n-perm 50
 """
 
 import argparse
 import json
-import os
 import time
 
 from eegdementia.utils import be_nice
@@ -32,12 +33,20 @@ if __name__ == "__main__":
     if a.phase2:
         from eegdementia import phase2 as P2
 
-        ds = P2.build_phase2_dataset(raw=False, embeddings=True, device="cpu")
         specs = P2.phase2_specs()
+        if a.model not in specs:
+            ap.error(f"unknown phase-2 model {a.model!r}")
+        need = P2.inputs_needed(specs, [a.model])
+        if need & set(P2.RAW_INPUTS):
+            ap.error("end-to-end networks are too expensive to permutation-test; use a frozen-embedding model")
+        fms = tuple(m for m in P2.FM_NAMES + P2.EXPLORATORY_FM if f"emb_{m}" in need)
+        ds = P2.build_phase2_dataset(raw=False, embeddings=fms, device="cpu")
         root = P2.PHASE2_DIR
     else:
         ds = E.build_dataset()
         specs = E.all_specs(ds.feature_names)
+        if a.model not in specs:
+            ap.error(f"unknown model {a.model!r}")
     obs = json.loads((root / "cv3" / a.model / "summary.json").read_text())["subject"]["balanced_accuracy"]["mean"]
     t = time.time()
     res = ev.permutation_test(specs[a.model], ds, obs, n_perm=a.n_perm, n_repeats=1, n_jobs=a.n_jobs, seed=E.OUTER_SEED)
@@ -45,5 +54,5 @@ if __name__ == "__main__":
     res["model"] = a.model
     out = root / "permutation"
     out.mkdir(parents=True, exist_ok=True)
-    (out / f"{a.model}.json").write_text(json.dumps(res, indent=2))
+    (out / f"{a.model}.json").write_text(json.dumps(res, indent=2), newline="\n")
     print({k: v for k, v in res.items() if k != "null"})

@@ -1,4 +1,5 @@
-from eegdementia.gpu_guard import parse_model_status, parse_nvidia_smi
+from eegdementia import gpu_guard as gg
+from eegdementia.gpu_guard import GpuGuard, parse_model_status, parse_nvidia_smi
 
 
 def test_model_status_parsing():
@@ -35,3 +36,57 @@ def test_nvidia_smi_parsing():
     )
     r = parse_nvidia_smi(table, own={55})
     assert len(r) == 1 and "999" in r[0]
+
+
+class _ScriptedGuard(GpuGuard):
+    """GpuGuard whose ``reasons()`` returns a scripted sequence (no subprocesses)."""
+
+    def __init__(self, script, **kw):
+        self.script = list(script)
+        self.calls = 0
+        super().__init__(use_model_status=False, docker_baseline={"x"}, poll_s=0, confirm_s=0, **kw)
+
+    def reasons(self):
+        self.calls += 1
+        return self.script.pop(0) if self.script else []
+
+
+def test_utilisation_false_positive_is_rechecked_not_paused(monkeypatch):
+    monkeypatch.setattr(gg.time, "sleep", lambda s: None)
+    # our own fold's load still shows in the first sample, gone 30 s later -> no pause
+    g = _ScriptedGuard([["GPU utilisation 17% while we are idle"], []])
+    paused = []
+    assert g.wait_until_free(on_pause=lambda: paused.append(1)) == 0.0
+    assert g.calls == 2 and not paused and not g.pauses
+
+
+def test_persistent_utilisation_and_foreign_jobs_pause(monkeypatch):
+    monkeypatch.setattr(gg.time, "sleep", lambda s: None)
+    events = []
+    g = _ScriptedGuard([["GPU utilisation 60% while we are idle"], ["GPU utilisation 60% while we are idle"], []])
+    g.wait_until_free(on_pause=lambda: events.append("pause"), on_resume=lambda: events.append("resume"))
+    assert events == ["pause", "resume"] and len(g.pauses) == 1
+    # a non-utilisation reason pauses at once, without the confirmation re-check
+    g = _ScriptedGuard([["Ollama model loaded: x", "GPU utilisation 60% while we are idle"], []])
+    g.wait_until_free()
+    assert g.calls == 2 and len(g.pauses) == 1
+
+
+def test_failed_model_status_is_a_reason(monkeypatch, tmp_path):
+    script = tmp_path / "model-status.cmd"
+    script.write_text("@echo off\n")
+    monkeypatch.setattr(gg, "_run", lambda cmd, timeout=60.0: f"{gg.FAILED}: timed out>")
+    monkeypatch.setattr(gg.shutil, "which", lambda name: None)  # no docker, no nvidia-smi
+    g = GpuGuard(model_status=script)
+    assert g.use_model_status
+    r = g.reasons()
+    assert len(r) == 1 and "model-status failed" in r[0]
+
+
+def test_model_status_lookup(monkeypatch, tmp_path):
+    monkeypatch.setenv("MODEL_STATUS_CMD", str(tmp_path / "ms.cmd"))
+    assert gg.find_model_status() == tmp_path / "ms.cmd"
+    monkeypatch.delenv("MODEL_STATUS_CMD")
+    monkeypatch.setattr(gg.shutil, "which", lambda name: None)
+    assert gg.find_model_status() is None
+    assert GpuGuard(docker_baseline={"x"}).use_model_status is False

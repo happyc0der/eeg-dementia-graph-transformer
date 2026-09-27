@@ -12,14 +12,15 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
-from eegdementia import evaluation as ev  # noqa: E402
-from eegdementia import experiments as E  # noqa: E402
-from eegdementia import reporting as R  # noqa: E402
-from eegdementia.config import CACHE_DIR, RESULTS_DIR  # noqa: E402
+from eegdementia import evaluation as ev
+from eegdementia import experiments as E
+from eegdementia import reporting as R
+from eegdementia.config import CACHE_DIR, RESULTS_DIR
+from eegdementia.reporting import fmt, md_table
 
 P2 = RESULTS_DIR / "phase2"
 FIG = P2 / "figures"
@@ -29,14 +30,6 @@ PHASE1_REFS = ["ensemble_vote", "all_lgbm", "spectral_lr", "all_lr", "nested_sel
 PHASE2_ORDER = ["cbramod_lr", "labram_lr", "cbramod_spectral_lr", "eegnet", "shallow", "cbramod_ft",
                 "ensemble_vote+cbramod_lr", "ensemble_vote+cbramod_ft", "ensemble_vote+labram_lr", "ensemble_vote+shallow",
                 "biot_lr"]
-OLD = {"accuracy": 0.636, "balanced_accuracy": 0.622}
-
-import importlib.util  # noqa: E402
-
-_spec = importlib.util.spec_from_file_location("mf", Path(__file__).with_name("make_figures.py"))
-MF = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(MF)
-fmt, md_table = MF.fmt, MF.md_table
 
 
 def pred_dir(ds, task):
@@ -116,7 +109,7 @@ def table(task, S2, S1, refs, binary=False):
     df = pd.DataFrame(rows)
     TAB.mkdir(parents=True, exist_ok=True)
     df.to_csv(TAB / f"{task}.csv", index=False)
-    (TAB / f"{task}.md").write_text(md_table(df), encoding="utf-8")
+    R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
 
@@ -143,8 +136,8 @@ def paired(task, S2, comparators):
     df = pd.DataFrame(rows)
     if len(df):
         df.to_csv(TAB / f"paired_{task}.csv", index=False)
-        (TAB / f"paired_{task}.md").write_text(md_table(df), encoding="utf-8")
-        (TAB / f"paired_{task}.json").write_text(json.dumps(full, indent=1))
+        R.write_text(TAB / f"paired_{task}.md", md_table(df))
+        R.write_text(TAB / f"paired_{task}.json", json.dumps(full, indent=1))
     return df, full
 
 
@@ -172,7 +165,7 @@ def fig_paired(task, full, comparator, title):
     if not items:
         return
     fig, ax = plt.subplots(figsize=(6.4, 0.34 * len(items) + 1.2))
-    for i, (m, r) in enumerate(items):
+    for i, (_m, r) in enumerate(items):
         pr = 100 * np.array(r["per_repeat_diff"])
         ax.scatter(pr, np.full(len(pr), i) + np.linspace(-0.12, 0.12, len(pr)), s=10, color=R.BAR_SECONDARY, zorder=2)
         lo, hi = (100 * np.array(r["boot_ci95"])).tolist()
@@ -237,6 +230,12 @@ def main():
     S2l, S1l = summaries(P2, "legacy"), summaries(RESULTS_DIR, "legacy")
     if S2l:
         out["legacy"] = table("legacy", S2l, S1l, ["ensemble_vote", "all_lgbm", "spectral_lr", "all_lr", "nested_select", "rbp_lr"])
+    # permutation test(s) of phase-2 pipelines (scripts/permutation_test.py --phase2)
+    for f in sorted((P2 / "permutation").glob("*.json")):
+        p = json.loads(f.read_text())
+        FIG.mkdir(parents=True, exist_ok=True)
+        R.null_histogram(p["null"], p["observed"], FIG / f"permutation_{f.stem}.png",
+                         f"{f.stem}: label-permutation null ({p['n_perm']} perms), p = {p['p_value']:.3f}", 1 / 3)
     for k, v in out.items():
         print(f"\n## {k}\n")
         print(md_table(v))
