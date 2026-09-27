@@ -26,15 +26,24 @@ if __name__ == "__main__":
     ap.add_argument("--model", default="spectral_lr")
     ap.add_argument("--n-perm", type=int, default=100)
     ap.add_argument("--n-jobs", type=int, default=12)
+    ap.add_argument("--phase2", action="store_true", help="phase-2 model on cached frozen embeddings (CPU)")
     a = ap.parse_args()
-    ds = E.build_dataset()
-    specs = E.all_specs(ds.feature_names)
-    obs = json.loads((RESULTS_DIR / "cv3" / a.model / "summary.json").read_text())["subject"]["balanced_accuracy"]["mean"]
+    root = RESULTS_DIR
+    if a.phase2:
+        from eegdementia import phase2 as P2
+
+        ds = P2.build_phase2_dataset(raw=False, embeddings=True, device="cpu")
+        specs = P2.phase2_specs()
+        root = P2.PHASE2_DIR
+    else:
+        ds = E.build_dataset()
+        specs = E.all_specs(ds.feature_names)
+    obs = json.loads((root / "cv3" / a.model / "summary.json").read_text())["subject"]["balanced_accuracy"]["mean"]
     t = time.time()
     res = ev.permutation_test(specs[a.model], ds, obs, n_perm=a.n_perm, n_repeats=1, n_jobs=a.n_jobs, seed=E.OUTER_SEED)
     res["runtime_s"] = time.time() - t
     res["model"] = a.model
-    out = RESULTS_DIR / "permutation"
+    out = root / "permutation"
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{a.model}.json").write_text(json.dumps(res, indent=2))
     print({k: v for k, v in res.items() if k != "null"})
