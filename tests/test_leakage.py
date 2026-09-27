@@ -203,3 +203,25 @@ def test_nested_model_selection_and_vote_never_see_test_subjects():
         if combine == "select":
             assert out["params"]["model"] in ("a", "b")
         np.testing.assert_allclose(out["proba"].sum(1), 1)
+
+
+class GroupSpy(Spy):
+    seen_groups = []
+
+    def fit(self, X, y, sample_weight=None, groups=None):
+        GroupSpy.seen_groups.append(set(groups))
+        assert len(groups) == len(X)
+        return super().fit(X, y, sample_weight)
+
+
+def test_fit_groups_hook_only_passes_training_subjects():
+    subj = make_subjects()
+    ds = make_dataset(subj)
+    spec = ModelSpec("g", "feat", lambda p, n, s: GroupSpy(**p), grid=[{"C": 0.1}, {"C": 1.0}], fit_groups=True)
+    split = ev.outer_splits(subj, 5, 1, seed=9)[0]
+    GroupSpy.seen_groups.clear()
+    ev.fit_predict(spec, ds, split, inner_splits=3)
+    assert len(GroupSpy.seen_groups) == 3 * 2 + 1
+    for g in GroupSpy.seen_groups:
+        assert not g & set(split.test)
+    assert GroupSpy.seen_groups[-1] == set(split.train)

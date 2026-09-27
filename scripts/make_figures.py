@@ -40,7 +40,11 @@ def fmt(s, level, m, pct=True, ci=True):
     if d is None:
         return ""
     k = 100 if pct else 1
-    out = f"{k * d['mean']:.1f} ± {k * d['sd']:.1f}" if pct else f"{d['mean']:.3f} ± {d['sd']:.3f}"
+    rep = s[level].get("n_repeats", 2) > 1
+    if pct:
+        out = f"{k * d['mean']:.1f}" + (f" ± {k * d['sd']:.1f}" if rep else "")
+    else:
+        out = f"{d['mean']:.3f}" + (f" ± {d['sd']:.3f}" if rep else "")
     if ci and "ci95" in d:
         lo, hi = d["ci95"]
         out += f" [{k * lo:.1f}, {k * hi:.1f}]" if pct else f" [{lo:.3f}, {hi:.3f}]"
@@ -77,7 +81,7 @@ def table_multiclass(task, S, order=None):
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
     df.to_csv(TAB / f"{task}.csv", index=False)
-    (TAB / f"{task}.md").write_text(md_table(df))
+    (TAB / f"{task}.md").write_text(md_table(df), encoding="utf-8")
     return df
 
 
@@ -100,7 +104,7 @@ def table_binary(task, S):
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
     df.to_csv(TAB / f"{task}.csv", index=False)
-    (TAB / f"{task}.md").write_text(md_table(df))
+    (TAB / f"{task}.md").write_text(md_table(df), encoding="utf-8")
     return df
 
 
@@ -148,6 +152,10 @@ def main():
                            "Legacy 18-subject test split: epoch/chunk-level balanced accuracy", xlabel="Balanced accuracy",
                            refs=[("chance", 1 / 3)])
 
+    L3 = load_task("loso3")
+    if L3:
+        table_multiclass("loso3", L3)
+
     # ---------------- binary LOSO vs literature
     for task in ("loso_ad_cn", "loso_ftd_cn"):
         B = load_task(task)
@@ -161,7 +169,7 @@ def main():
         for lab, v in LIT[task]:
             rows.append({"label": lab, "mean": v, "color": R.MUTED})
         R.comparison_chart(rows, FIG / f"{task}_vs_literature.png",
-                           f"{task.replace('loso_', '').replace('_', ' vs ').upper()} leave-one-subject-out accuracy vs literature",
+                           f"{ {'loso_ad_cn': 'AD vs CN', 'loso_ftd_cn': 'FTD vs CN'}[task]} leave-one-subject-out accuracy vs literature (bars: ours, dark = subject level, light = epoch level)",
                            xlabel="Accuracy", refs=[("chance", 0.5)], xlim=(0.3, 1.0))
 
     # ---------------- other binary CVs / sensitivity

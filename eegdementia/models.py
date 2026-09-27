@@ -8,6 +8,7 @@ tangent-space mapping, ...) so that everything fitted lives inside the training 
 
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass, field
 from typing import Callable
@@ -62,6 +63,9 @@ class ScoreProba(BaseEstimator, ClassifierMixin):
         return self.classes_[self.predict_proba(X).argmax(1)]
 
 
+_TS_CACHE: dict = {}
+
+
 class BandTangentSpace(BaseEstimator, TransformerMixin):
     """Tangent-space mapping per frequency band, concatenated.
 
@@ -77,7 +81,21 @@ class BandTangentSpace(BaseEstimator, TransformerMixin):
         from pyriemann.tangentspace import TangentSpace
 
         self.bands_ = list(range(X.shape[1])) if self.bands is None else list(self.bands)
+        # The reference points depend only on X (not on y or on the classifier's
+        # hyper-parameters), so fits on identical training matrices are memoised per
+        # process: the inner-CV grid over C then fits the Riemannian means once.
+        key = None
+        if sample_weight is None:
+            h = hashlib.blake2b(np.ascontiguousarray(X).view(np.uint8).ravel(), digest_size=16).hexdigest()
+            key = (X.shape, str(X.dtype), h, tuple(self.bands_), str(self.metric))
+            if key in _TS_CACHE:
+                self.ts_ = _TS_CACHE[key]
+                return self
         self.ts_ = [TangentSpace(metric=self.metric).fit(X[:, b].astype(np.float64), sample_weight=sample_weight) for b in self.bands_]
+        if key is not None:
+            if len(_TS_CACHE) >= 8:
+                _TS_CACHE.pop(next(iter(_TS_CACHE)))
+            _TS_CACHE[key] = self.ts_
         return self
 
     def transform(self, X):
@@ -125,6 +143,7 @@ class ModelSpec:
     description: str = ""
     members: list["ModelSpec"] | None = None  # ensemble / model-selection members
     combine: str = "vote"  # "vote" (soft voting) | "select" (nested choice of one member)
+    fit_groups: bool = False  # pass groups=<subject id per training epoch> to fit()
 
     def get_X(self, ds, idx):
         X = ds.inputs[self.input][idx]
@@ -317,10 +336,10 @@ def build_specs(feature_names: list[str]) -> dict[str, ModelSpec]:
         "all_rf",
         "feat",
         rf_factory,
-        [{"min_samples_leaf": m} for m in (5, 50)],
+        [{"min_samples_leaf": 20}],
         columns=cols["all"],
         sample_weight_param="clf__sample_weight",
-        description="all features + random forest (400 trees)",
+        description="all features + random forest (400 trees, min_samples_leaf=20, not tuned)",
     )
     S["all_lgbm"] = ModelSpec(
         "all_lgbm",

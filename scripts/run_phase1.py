@@ -5,7 +5,8 @@
     uv run python scripts/run_phase1.py --list
 
 Tasks: cv3 (3-class, 5-fold x N repeats), legacy (old fixed 18-subject test split),
-loso_ad_cn / loso_ftd_cn (binary leave-one-subject-out), cv_ad_cn / cv_ftd_cn / cv_ad_ftd.
+loso_ad_cn / loso_ftd_cn (binary leave-one-subject-out), loso3 (3-class LOSO),
+cv_ad_cn / cv_ftd_cn / cv_ad_ftd (binary repeated nested CV).
 """
 
 import argparse
@@ -13,9 +14,9 @@ import os
 import sys
 import time
 
-for v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMBA_NUM_THREADS"):
-    os.environ.setdefault(v, "1")
-os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+from eegdementia.utils import be_nice
+
+be_nice()  # CPU-only, 1 BLAS thread per process, below-normal priority
 
 from eegdementia import experiments as E  # noqa: E402
 from eegdementia.config import EpochConfig, PipelineConfig, PrepConfig  # noqa: E402
@@ -27,11 +28,13 @@ def main():
     ap.add_argument("--models", default="")
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--inner-splits", type=int, default=5)
-    ap.add_argument("--n-jobs", type=int, default=14)
+    ap.add_argument("--n-jobs", type=int, default=12)
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--reference", default="average")
     ap.add_argument("--epoch-length", type=float, default=10.0)
     ap.add_argument("--epoch-step", type=float, default=5.0)
+    ap.add_argument("--keep-boundaries", action="store_true",
+                    help="do not drop windows containing ASR boundary events (needed for long windows)")
     ap.add_argument("--tag", default="", help="suffix for the results folder (sensitivity analyses)")
     ap.add_argument("--subject-mean", action="store_true",
                     help="average every input over each subject's epochs and train on one row per subject")
@@ -41,7 +44,7 @@ def main():
 
     cfg = PipelineConfig(
         prep=PrepConfig(reference=a.reference),
-        epoch=EpochConfig(length_s=a.epoch_length, step_s=a.epoch_step),
+        epoch=EpochConfig(length_s=a.epoch_length, step_s=a.epoch_step, drop_boundaries=not a.keep_boundaries),
     )
     ds = E.build_dataset(cfg)
     if a.subject_mean:

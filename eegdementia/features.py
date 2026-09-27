@@ -296,6 +296,8 @@ def compute_subject_features(subject: str, cfg: PipelineConfig, cache_dir: Path 
         return out
     rec = load_preprocessed(subject, cfg.prep, cache_dir=cache_dir)
     ep = epoch_recording(rec, cfg.epoch)
+    if len(ep.data) == 0:
+        raise ValueError(f"{subject}: no epochs left with {cfg.epoch} ({ep.n_candidates} candidates)")
     res = extract_epoch_features(ep.data, ep.sfreq, cfg.feat)
     tmp = out.with_suffix(".tmp.npz")
     np.savez(

@@ -17,9 +17,9 @@ import json
 import os
 import re
 
-for v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS"):
-    os.environ.setdefault(v, "1")
-os.environ.setdefault("CUDA_VISIBLE_DEVICES", "-1")
+from eegdementia.utils import be_nice
+
+be_nice()  # CPU-only, 1 BLAS thread per process, below-normal priority
 
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
@@ -94,12 +94,14 @@ def feature_groups(names):
     groups = {}
     for i, n in enumerate(names):
         fam, meas, band, loc = n.split("__")
-        if fam in ("spec", "aper", "cplx", "conn"):
-            key = f"{fam}:{meas}" + (f":{band}" if band != "all" else "")
-            groups.setdefault("measure|" + key, []).append(i)
-            region = next((r for r, chs in REGIONS.items() if loc in chs), None)
-            if region:
-                groups.setdefault(f"region|{region}", []).append(i)
+        fam = fam.rstrip("RG") if fam in ("specR", "aperR", "cplxR", "connR", "connG") else fam
+        # per-channel features and their regional-mean copies go into the same group, so a
+        # shuffled measure/region cannot be recovered from a redundant copy
+        key = f"{fam}:{meas}" + (f":{band}" if band != "all" else "")
+        groups.setdefault("measure|" + key, []).append(i)
+        region = loc if loc in REGIONS else next((r for r, chs in REGIONS.items() if loc in chs), None)
+        if region:
+            groups.setdefault(f"region|{region}", []).append(i)
     return {k: np.array(v) for k, v in groups.items()}
 
 
@@ -129,7 +131,7 @@ def _perm_importance_split(spec, ds, split, groups_local, n_draws, seed):
     return out
 
 
-def permutation_importance(ds, spec, repeats, n_draws=5, n_jobs=14):
+def permutation_importance(ds, spec, repeats, n_draws=5, n_jobs=12):
     names = [ds.feature_names[i] for i in spec.columns]
     groups = feature_groups(names)
     splits = ev.outer_splits(ds.subjects, 5, repeats, seed=E.OUTER_SEED)
@@ -202,7 +204,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="spectral_lr")
     ap.add_argument("--repeats", type=int, default=3)
-    ap.add_argument("--n-jobs", type=int, default=14)
+    ap.add_argument("--n-jobs", type=int, default=12)
     ap.add_argument("--skip-perm", action="store_true")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)

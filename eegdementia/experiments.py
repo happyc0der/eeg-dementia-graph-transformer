@@ -22,17 +22,27 @@ OUTER_SEED = 2026
 # --------------------------------------------------------------------------------------
 # Dataset
 # --------------------------------------------------------------------------------------
-def build_dataset(cfg: PipelineConfig = PipelineConfig()) -> ev.Dataset:
+def build_dataset(cfg: PipelineConfig = PipelineConfig(), include_raw: bool = False) -> ev.Dataset:
+    """Epoch-level dataset for the harness.
+
+    inputs: ``feat`` (n_epochs, 1348) features, ``cov`` (n_epochs, 6, 19, 19) band
+    covariances, ``demo`` (n_epochs, 2) = [age, male]; with ``include_raw=True`` also
+    ``raw`` (n_epochs, 19, n_times) float32 microvolts (the very same epochs, same order),
+    for deep models.
+    """
     subs = load_participants()
     fs = FeatureStore(list(subs.index), cfg)
     age = subs.loc[fs.subject, "age"].to_numpy(float)
     male = (subs.loc[fs.subject, "sex"] == "M").to_numpy(float)
-    ds = ev.Dataset(
-        {"feat": fs.X, "cov": fs.cov, "demo": np.column_stack([age, male]).astype(np.float32)},
-        fs.subject,
-        subs,
-        fs.names,
-    )
+    inputs = {"feat": fs.X, "cov": fs.cov, "demo": np.column_stack([age, male]).astype(np.float32)}
+    if include_raw:
+        from .data import load_epochs
+
+        raw, g = load_epochs(list(subs.index), cfg.prep, cfg.epoch)
+        if not np.array_equal(g, fs.subject):
+            raise RuntimeError("raw epochs and cached features are not aligned; rebuild the cache")
+        inputs["raw"] = raw
+    ds = ev.Dataset(inputs, fs.subject, subs, fs.names)
     ds.epoch_stats = fs.epoch_stats
     ds.cfg = cfg
     return ds
@@ -79,6 +89,8 @@ def all_specs(feature_names: list[str]) -> dict[str, M.ModelSpec]:
 def task_data_and_splits(task: str, ds: ev.Dataset, n_repeats: int = 10, n_splits: int = 5):
     if task == "cv3":
         return ds, ev.outer_splits(ds.subjects, n_splits, n_repeats, seed=OUTER_SEED)
+    if task == "loso3":
+        return ds, ev.loso_splits(ds.subjects)
     if task == "legacy":
         return ds, ev.fixed_split(ds.subjects, LEGACY_TEST_SUBJECTS)
     if task in ("loso_ad_cn", "loso_ftd_cn", "cv_ad_cn", "cv_ftd_cn", "cv_ad_ftd"):
@@ -100,7 +112,7 @@ def run_and_save(
     model: str,
     ds: ev.Dataset,
     specs: dict,
-    n_jobs: int = 14,
+    n_jobs: int = 12,
     n_repeats: int = 10,
     inner_splits: int = 5,
     n_boot: int = 2000,

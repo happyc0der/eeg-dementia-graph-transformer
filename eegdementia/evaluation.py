@@ -247,10 +247,12 @@ def _fit_and_predict(spec, params: dict, ds: Dataset, tr_idx: np.ndarray, te_idx
     ytr = ds.y[tr_idx]
     w = balanced_subject_weights(ds.groups[tr_idx], ytr)
     est = spec.make(params, n_classes=ds.n_classes, seed=seed)
-    if spec.sample_weight:
-        est.fit(Xtr, ytr, **{spec.sample_weight_param: w})
-    else:
-        est.fit(Xtr, ytr)
+    kw = {spec.sample_weight_param: w} if spec.sample_weight else {}
+    if getattr(spec, "fit_groups", False):
+        # e.g. deep models that carve an early-stopping split out of the *training*
+        # subjects; they receive the subject id of every training epoch.
+        kw["groups"] = ds.groups[tr_idx]
+    est.fit(Xtr, ytr, **kw)
     proba = est.predict_proba(spec.get_X(ds, te_idx))
     # make sure columns follow label order 0..n-1
     classes = getattr(est, "classes_", np.arange(ds.n_classes))

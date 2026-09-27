@@ -1,0 +1,298 @@
+{
+  "task": "cv3",
+  "model": "chance_prior",
+  "description": "DummyClassifier(prior): chance baseline",
+  "class_names": [
+    "AD",
+    "CN",
+    "FTD"
+  ],
+  "n_subjects": 88,
+  "n_epochs": 11616,
+  "n_outer_splits": 50,
+  "inner_splits": 5,
+  "selection_criterion": "pooled inner-OOF subject-level balanced accuracy, ties -> macro OvR AUC",
+  "aggregation": "subject probability = softmax(mean epoch log-probability)",
+  "pipeline_config": {
+    "prep": {
+      "crop_start_s": 30.0,
+      "crop_end_s": 30.0,
+      "reference": "average",
+      "sfreq": 250.0
+    },
+    "epoch": {
+      "length_s": 10.0,
+      "step_s": 5.0,
+      "drop_boundaries": true,
+      "boundary_margin_s": 0.5,
+      "reject_mad_k": 5.0
+    },
+    "feat": {
+      "welch_seg_s": 2.0,
+      "specparam_range": [
+        1.0,
+        40.0
+      ],
+      "alpha_search": [
+        5.0,
+        14.0
+      ],
+      "alpha_cog": [
+        7.0,
+        13.0
+      ],
+      "perm_entropy_order": 5,
+      "perm_entropy_delay": 2,
+      "sample_entropy_decim": 2,
+      "version": 1
+    }
+  },
+  "chosen_params_counts": {
+    "{}": 50
+  },
+  "wall_time_s": 74.27486038208008,
+  "n_jobs": 14,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "runtime_s": 5.802497625350952,
+  "subject": {
+    "balanced_accuracy": {
+      "mean": 0.33333333333333337,
+      "sd": 5.851389114294502e-17,
+      "ci95": [
+        0.33333333333333337,
+        0.33333333333333337
+      ]
+    },
+    "accuracy": {
+      "mean": 0.40909090909090906,
+      "sd": 5.851389114294502e-17,
+      "ci95": [
+        0.40909090909090906,
+        0.40909090909090906
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.19354838709677422,
+      "sd": 0.0,
+      "ci95": [
+        0.19354838709677422,
+        0.19354838709677422
+      ]
+    },
+    "log_loss": {
+      "mean": 1.0853105087780077,
+      "sd": 0.00035519877257782364
+    },
+    "recall_AD": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "specificity_AD": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "f1_AD": {
+      "mean": 0.5806451612903227,
+      "sd": 1.1702778228589004e-16
+    },
+    "recall_CN": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "specificity_CN": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "f1_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "recall_FTD": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "specificity_FTD": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "f1_FTD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "auc_AD": {
+      "mean": 0.4883279914529914,
+      "sd": 0.00945079301144309,
+      "ci95": [
+        0.4441746794871796,
+        0.5298090277777778
+      ]
+    },
+    "auc_CN": {
+      "mean": 0.47352425482174165,
+      "sd": 0.005795953681166,
+      "ci95": [
+        0.4331640853302163,
+        0.5129492986557569
+      ]
+    },
+    "auc_FTD": {
+      "mean": 0.48127090301003345,
+      "sd": 0.00931664767704625,
+      "ci95": [
+        0.43571822742474914,
+        0.5297709030100335
+      ]
+    },
+    "macro_auc": {
+      "mean": 0.4810410497615889,
+      "sd": 0.005210620821356308,
+      "ci95": [
+        0.45046002010312397,
+        0.5111501729374882
+      ]
+    },
+    "confusion_summed": [
+      [
+        360,
+        0,
+        0
+      ],
+      [
+        290,
+        0,
+        0
+      ],
+      [
+        230,
+        0,
+        0
+      ]
+    ],
+    "n_repeats": 10
+  },
+  "epoch": {
+    "balanced_accuracy": {
+      "mean": 0.33333333333333337,
+      "sd": 5.851389114294502e-17,
+      "ci95": [
+        0.33333333333333337,
+        0.33333333333333337
+      ]
+    },
+    "accuracy": {
+      "mean": 0.41769972451790627,
+      "sd": 5.851389114294502e-17,
+      "ci95": [
+        0.39918030473444743,
+        0.4389628604233615
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.19642134240142498,
+      "sd": 0.0,
+      "ci95": [
+        0.1901972076053523,
+        0.20336993114350443
+      ]
+    },
+    "log_loss": {
+      "mean": 1.07531938106896,
+      "sd": 0.0009079103630511558
+    },
+    "recall_AD": {
+      "mean": 1.0,
+      "sd": 0.0
+    },
+    "specificity_AD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "f1_AD": {
+      "mean": 0.5892640272042751,
+      "sd": 1.1702778228589004e-16
+    },
+    "recall_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "specificity_CN": {
+      "mean": 1.0,
+      "sd": 0.0
+    },
+    "f1_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "recall_FTD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "specificity_FTD": {
+      "mean": 1.0,
+      "sd": 0.0
+    },
+    "f1_FTD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "auc_AD": {
+      "mean": 0.47027189157427685,
+      "sd": 0.009947693629415805
+    },
+    "auc_CN": {
+      "mean": 0.4666400391146393,
+      "sd": 0.00699811247389731
+    },
+    "auc_FTD": {
+      "mean": 0.4577129436714224,
+      "sd": 0.011463007943533143
+    },
+    "macro_auc": {
+      "mean": 0.46487495812011287,
+      "sd": 0.006077583503474918
+    },
+    "confusion_summed": [
+      [
+        48520,
+        0,
+        0
+      ],
+      [
+        40120,
+        0,
+        0
+      ],
+      [
+        27520,
+        0,
+        0
+      ]
+    ],
+    "n_repeats": 10
+  }
+}

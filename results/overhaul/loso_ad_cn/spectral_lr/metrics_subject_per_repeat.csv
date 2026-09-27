@@ -1,0 +1,2 @@
+repeat,balanced_accuracy,accuracy,macro_f1,log_loss,n,recall_CN,specificity_CN,f1_CN,recall_AD,specificity_AD,f1_AD,auc_CN,auc_AD,macro_auc
+0,0.78544,0.78462,0.78333,0.46833,65,0.79310,0.77778,0.76667,0.77778,0.79310,0.80000,0.88889,0.88889,0.88889

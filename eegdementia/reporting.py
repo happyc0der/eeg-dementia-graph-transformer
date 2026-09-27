@@ -62,7 +62,8 @@ def comparison_chart(rows: list[dict], out: Path, title: str, xlabel: str = "Sub
                 va="center", ha="left", fontsize=7.5, color=INK2)
     for lab, v in refs:
         ax.axvline(v, color=MUTED, lw=1, ls="--")
-        ax.text(v, len(rows) - 0.3, " " + lab, rotation=90, va="top", ha="right", fontsize=7, color=INK2)
+        ax.text(v, -0.9, lab, va="top", ha="center", fontsize=7, color=INK2)
+    ax.set_ylim(-1.3, len(rows) - 0.4)
     ax.set_yticks(y, [r["label"] for r in rows])
     ax.set_xlim(*xlim)
     ax.set_xlabel(xlabel)
@@ -187,7 +188,6 @@ def topomap_grid(values: dict[str, dict[str, np.ndarray]], ch_names, out: Path, 
             if i == 0:
                 ax.set_title(c, fontsize=9)
             if j == 0:
-                ax.set_ylabel(r, fontsize=9, rotation=0, ha="right", va="center")
                 ax.text(-0.15, 0.5, r, transform=ax.transAxes, ha="right", va="center", fontsize=9)
     cb = fig.colorbar(im, ax=axes, shrink=0.6, fraction=0.03)
     cb.set_label(units, fontsize=8)
