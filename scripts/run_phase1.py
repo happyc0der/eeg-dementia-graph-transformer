@@ -23,7 +23,7 @@ from eegdementia.config import EpochConfig, PipelineConfig, PrepConfig  # noqa: 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", default="cv3")
+    ap.add_argument("--task", default="cv3", choices=E.TASKS)
     ap.add_argument("--models", default="")
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--inner-splits", type=int, default=5)
@@ -56,6 +56,9 @@ def main():
             print(f"{k:28s} {s.description}")
         return
     models = [m for m in a.models.split(",") if m] or list(specs)
+    unknown = [m for m in models if m not in specs]
+    if unknown:  # fail before hours of runs, not in the middle of them
+        ap.error(f"unknown model(s) {unknown}; see --list")
     for m in models:
         out = E.RESULTS_DIR / (a.task + (f"__{a.tag}" if a.tag else "")) / m / "summary.json"
         if a.skip_existing and out.exists():

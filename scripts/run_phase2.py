@@ -43,6 +43,8 @@ def main():
     from eegdementia import phase2 as P2
     from eegdementia.config import CACHE_DIR
 
+    if args.task not in E.TASKS:
+        ap.error(f"unknown task {args.task!r}; choose from {list(E.TASKS)}")
     specs = P2.phase2_specs()
     models = [m for m in args.models.split(",") if m]
     unknown = [m for m in models if m not in specs]

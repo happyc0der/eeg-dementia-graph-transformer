@@ -86,6 +86,9 @@ def all_specs(feature_names: list[str]) -> dict[str, M.ModelSpec]:
 # --------------------------------------------------------------------------------------
 # Tasks
 # --------------------------------------------------------------------------------------
+TASKS = ("cv3", "legacy", "loso3", "loso_ad_cn", "loso_ftd_cn", "cv_ad_cn", "cv_ftd_cn", "cv_ad_ftd")
+
+
 def task_data_and_splits(task: str, ds: ev.Dataset, n_repeats: int = 10, n_splits: int = 5):
     if task == "cv3":
         return ds, ev.outer_splits(ds.subjects, n_splits, n_repeats, seed=OUTER_SEED)
