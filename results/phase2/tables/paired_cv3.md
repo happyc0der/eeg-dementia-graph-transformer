@@ -1,0 +1,24 @@
+| model | vs | repeats | mean Δ bal. acc. (pp) | sd of per-repeat Δ (pp) | repeats better / equal | paired bootstrap 95% CI (pp) | P(Δ ≤ 0) | verdict |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| cbramod_lr | ensemble_vote | 10 | -2.1 | 4.5 | 2 / 0 of 10 | [-7.8, +4.0] | 0.772 | not distinguishable |
+| cbramod_lr | spectral_lr | 10 | -1.5 | 5.5 | 4 / 0 of 10 | [-8.7, +5.3] | 0.667 | not distinguishable |
+| labram_lr | ensemble_vote | 10 | +0.2 | 4.0 | 6 / 0 of 10 | [-4.9, +5.2] | 0.471 | not distinguishable |
+| labram_lr | spectral_lr | 10 | +0.8 | 3.7 | 7 / 0 of 10 | [-4.8, +5.8] | 0.385 | not distinguishable |
+| cbramod_spectral_lr | ensemble_vote | 10 | -0.5 | 2.8 | 3 / 0 of 10 | [-6.3, +5.6] | 0.575 | not distinguishable |
+| cbramod_spectral_lr | spectral_lr | 10 | +0.1 | 5.3 | 6 / 0 of 10 | [-6.8, +6.9] | 0.501 | not distinguishable |
+| eegnet | ensemble_vote | 10 | -8.8 | 4.1 | 0 / 0 of 10 | [-16.1, -1.6] | 0.992 | worse |
+| eegnet | spectral_lr | 10 | -8.2 | 5.0 | 0 / 0 of 10 | [-15.8, -0.7] | 0.985 | worse |
+| shallow | ensemble_vote | 10 | -0.8 | 3.8 | 4 / 0 of 10 | [-6.1, +4.8] | 0.623 | not distinguishable |
+| shallow | spectral_lr | 10 | -0.2 | 5.4 | 6 / 0 of 10 | [-6.7, +6.0] | 0.538 | not distinguishable |
+| cbramod_ft | ensemble_vote | 10 | -7.1 | 3.3 | 0 / 0 of 10 | [-13.3, -0.5] | 0.982 | worse |
+| cbramod_ft | spectral_lr | 10 | -6.5 | 5.7 | 1 / 0 of 10 | [-13.5, +0.5] | 0.963 | not distinguishable |
+| ensemble_vote+cbramod_lr | ensemble_vote | 10 | +1.1 | 2.5 | 6 / 0 of 10 | [-1.1, +3.5] | 0.175 | not distinguishable |
+| ensemble_vote+cbramod_lr | spectral_lr | 10 | +1.7 | 5.5 | 7 / 0 of 10 | [-2.9, +6.2] | 0.263 | not distinguishable |
+| ensemble_vote+cbramod_ft | ensemble_vote | 10 | -0.3 | 1.8 | 4 / 2 of 10 | [-1.2, +0.8] | 0.679 | not distinguishable |
+| ensemble_vote+cbramod_ft | spectral_lr | 10 | +0.4 | 6.3 | 5 / 0 of 10 | [-4.0, +4.9] | 0.457 | not distinguishable |
+| ensemble_vote+labram_lr [post hoc] | ensemble_vote | 10 | +0.3 | 2.5 | 5 / 1 of 10 | [-2.3, +2.7] | 0.395 | not distinguishable |
+| ensemble_vote+labram_lr [post hoc] | spectral_lr | 10 | +0.9 | 5.8 | 6 / 0 of 10 | [-3.4, +5.4] | 0.360 | not distinguishable |
+| ensemble_vote+shallow [post hoc] | ensemble_vote | 10 | +1.8 | 2.4 | 7 / 0 of 10 | [+0.1, +3.5] | 0.022 | better |
+| ensemble_vote+shallow [post hoc] | spectral_lr | 10 | +2.4 | 6.1 | 7 / 0 of 10 | [-2.2, +6.9] | 0.179 | not distinguishable |
+| biot_lr | ensemble_vote | 10 | -8.7 | 4.6 | 0 / 0 of 10 | [-15.8, -1.6] | 0.993 | worse |
+| biot_lr | spectral_lr | 10 | -8.1 | 6.2 | 1 / 0 of 10 | [-14.7, -1.7] | 0.992 | worse |

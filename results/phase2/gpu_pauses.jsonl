@@ -1,0 +1,2 @@
+{"start": "2026-09-27 04:10:22", "minutes": 10.3, "context": "shallow r6 f1", "reasons": ["foreign Python GPU job: Python   pid 34792 (GPU, running 0m): \"<uv-managed CPython 3.12>\\python.exe\" -"]}
+{"start": "2026-09-27 04:58:22", "minutes": 9.0, "context": "cbramod_ft r0 f1", "reasons": ["GPU utilisation 17% while we are idle (false positive: first nvidia-smi sample after our own fold; runner restarted 05:07 with a confirmation re-check)"], "note": "self-inflicted; recorded manually"}

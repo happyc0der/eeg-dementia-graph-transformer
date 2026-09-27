@@ -1,0 +1,10 @@
+| model | vs | repeats | mean Δ bal. acc. (pp) | sd of per-repeat Δ (pp) | repeats better / equal | paired bootstrap 95% CI (pp) | P(Δ ≤ 0) | verdict |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| cbramod_lr | rbp_lr | 10 | -2.9 | 4.3 | 3 / 0 of 10 | [-13.1, +7.3] | 0.684 | not distinguishable |
+| cbramod_lr | spectral_lr | 10 | -0.4 | 5.7 | 4 / 0 of 10 | [-9.1, +8.4] | 0.500 | not distinguishable |
+| labram_lr | rbp_lr | 10 | -7.3 | 4.3 | 0 / 0 of 10 | [-17.4, +2.7] | 0.921 | not distinguishable |
+| labram_lr | spectral_lr | 10 | -4.7 | 5.0 | 1 / 0 of 10 | [-12.7, +3.2] | 0.879 | not distinguishable |
+| cbramod_spectral_lr | rbp_lr | 10 | -4.7 | 4.2 | 2 / 0 of 10 | [-14.6, +5.1] | 0.815 | not distinguishable |
+| cbramod_spectral_lr | spectral_lr | 10 | -2.1 | 4.7 | 2 / 0 of 10 | [-10.3, +5.7] | 0.671 | not distinguishable |
+| shallow | rbp_lr | 10 | -0.4 | 5.5 | 6 / 0 of 10 | [-9.4, +8.8] | 0.525 | not distinguishable |
+| shallow | spectral_lr | 10 | +2.2 | 5.4 | 7 / 0 of 10 | [-6.0, +10.2] | 0.292 | not distinguishable |

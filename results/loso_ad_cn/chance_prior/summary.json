@@ -1,0 +1,239 @@
+{
+  "task": "loso_ad_cn",
+  "model": "chance_prior",
+  "description": "DummyClassifier(prior): chance baseline",
+  "class_names": [
+    "CN",
+    "AD"
+  ],
+  "n_subjects": 65,
+  "n_epochs": 8864,
+  "n_outer_splits": 65,
+  "inner_splits": 5,
+  "selection_criterion": "pooled inner-OOF subject-level balanced accuracy, ties -> macro OvR AUC",
+  "aggregation": "subject probability = softmax(mean epoch log-probability)",
+  "pipeline_config": {
+    "prep": {
+      "crop_start_s": 30.0,
+      "crop_end_s": 30.0,
+      "reference": "average",
+      "sfreq": 250.0
+    },
+    "epoch": {
+      "length_s": 10.0,
+      "step_s": 5.0,
+      "drop_boundaries": true,
+      "boundary_margin_s": 0.5,
+      "reject_mad_k": 5.0
+    },
+    "feat": {
+      "welch_seg_s": 2.0,
+      "specparam_range": [
+        1.0,
+        40.0
+      ],
+      "alpha_search": [
+        5.0,
+        14.0
+      ],
+      "alpha_cog": [
+        7.0,
+        13.0
+      ],
+      "perm_entropy_order": 5,
+      "perm_entropy_delay": 2,
+      "sample_entropy_decim": 2,
+      "version": 1
+    }
+  },
+  "chosen_params_counts": {
+    "{}": 65
+  },
+  "wall_time_s": 16.12738537788391,
+  "n_jobs": 8,
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "runtime_s": 7.3980937004089355,
+  "subject": {
+    "balanced_accuracy": {
+      "mean": 0.5,
+      "sd": 0.0,
+      "ci95": [
+        0.5,
+        0.5
+      ]
+    },
+    "accuracy": {
+      "mean": 0.5538461538461539,
+      "sd": 0.0,
+      "ci95": [
+        0.5538461538461539,
+        0.5538461538461539
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.3564356435643565,
+      "sd": 0.0,
+      "ci95": [
+        0.3564356435643565,
+        0.3564356435643565
+      ]
+    },
+    "log_loss": {
+      "mean": 0.7031872710722475,
+      "sd": 0.0
+    },
+    "recall_CN": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "specificity_CN": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "f1_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "recall_AD": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "specificity_AD": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "f1_AD": {
+      "mean": 0.712871287128713,
+      "sd": 0.0
+    },
+    "auc_CN": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "auc_AD": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "macro_auc": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "confusion_summed": [
+      [
+        0,
+        29
+      ],
+      [
+        0,
+        36
+      ]
+    ],
+    "n_repeats": 1
+  },
+  "epoch": {
+    "balanced_accuracy": {
+      "mean": 0.5,
+      "sd": 0.0,
+      "ci95": [
+        0.5,
+        0.5
+      ]
+    },
+    "accuracy": {
+      "mean": 0.5473826714801444,
+      "sd": 0.0,
+      "ci95": [
+        0.5249241861708447,
+        0.568144948580526
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.3537474482356372,
+      "sd": 0.0,
+      "ci95": [
+        0.3442296623651281,
+        0.3623037187821998
+      ]
+    },
+    "log_loss": {
+      "mean": 0.7049561433335385,
+      "sd": 0.0
+    },
+    "recall_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "specificity_CN": {
+      "mean": 1.0,
+      "sd": 0.0
+    },
+    "f1_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "recall_AD": {
+      "mean": 1.0,
+      "sd": 0.0
+    },
+    "specificity_AD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "f1_AD": {
+      "mean": 0.7074948964712744,
+      "sd": 0.0
+    },
+    "auc_CN": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "auc_AD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "macro_auc": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "confusion_summed": [
+      [
+        0,
+        4012
+      ],
+      [
+        0,
+        4852
+      ]
+    ],
+    "n_repeats": 1
+  }
+}
