@@ -109,3 +109,15 @@ def test_own_pids_survives_psutil_errors(monkeypatch):
 
     monkeypatch.setattr(gg.psutil, "Process", lambda: Racy())
     assert gg.os.getpid() in gg._own_pids()
+
+
+def test_pause_records_do_not_leak_the_home_directory(monkeypatch, tmp_path):
+    home = r"C:\Users\someone"
+    assert gg.redact_home(rf'python "{home}\AppData\uv\python.exe" x', home) == r'python "~\AppData\uv\python.exe" x'
+    assert gg.redact_home("/home/someone/bin/python", "/home/someone") == "~/bin/python"
+    monkeypatch.setattr(gg.time, "sleep", lambda s: None)
+    monkeypatch.setattr(gg.Path, "home", classmethod(lambda cls: gg.Path(home)))
+    log = tmp_path / "pauses.jsonl"
+    g = _ScriptedGuard([[rf"foreign Python GPU job: {home}\python.exe"], []], pause_log=log)
+    g.wait_until_free()
+    assert "someone" not in log.read_text() and "someone" not in str(g.pauses)

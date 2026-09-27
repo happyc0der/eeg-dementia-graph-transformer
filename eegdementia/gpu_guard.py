@@ -62,6 +62,15 @@ def find_model_status() -> Path | None:
     return Path(found) if found else None
 
 
+def redact_home(text: str, home: str | None = None) -> str:
+    """Replace the user's home directory (any slash style, any case on Windows) with ``~``."""
+    home = str(Path.home()) if home is None else home
+    variants = {home, home.replace("\\", "/"), home.replace("/", "\\")}
+    for v in sorted(variants, key=len, reverse=True):
+        text = re.sub(re.escape(v), "~", text, flags=re.IGNORECASE if os.name == "nt" else 0)
+    return text
+
+
 def _own_pids() -> set[int]:
     pids = {os.getpid()}
     try:
@@ -188,8 +197,9 @@ class GpuGuard:
             if r:
                 log.info("still busy: %s", "; ".join(r))
         dt = time.time() - t0
+        # pause records end up in results/ (summary.json, gpu_pauses.jsonl): no home-directory paths
         rec = {"start": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t0)), "minutes": round(dt / 60, 1),
-               "context": context, "reasons": first}
+               "context": context, "reasons": [redact_home(x) for x in first]}
         self.pauses.append(rec)
         if self.pause_log is not None:
             Path(self.pause_log).parent.mkdir(parents=True, exist_ok=True)

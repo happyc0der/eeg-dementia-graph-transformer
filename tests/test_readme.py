@@ -1,4 +1,5 @@
-"""README consistency: generated tables match results/, links resolve, no local absolute paths."""
+"""README consistency: generated tables match results/, links resolve, no local absolute paths
+(in the READMEs, and no home-directory paths in the committed result files)."""
 
 import importlib.util
 import re
@@ -39,3 +40,13 @@ def test_readme_links_resolve_and_no_local_paths(readme):
     assert not missing, f"broken relative links in {readme}: {missing}"
     m = DRIVE_PATH.search(text)
     assert m is None, f"absolute local path in {readme}: {text[max(0, m.start() - 20): m.end() + 20]!r}"
+
+
+def test_committed_results_have_no_home_directory_paths():
+    # C:\Users\..., C:\\Users\\... (JSON-escaped), C:/Users/..., /home/..., /Users/...
+    home = re.compile(r"(?i)(?<![A-Za-z])[A-Za-z]:[\\/]+Users[\\/]|/home/\w|/Users/\w")
+    hits = []
+    for p in (ROOT / "results").rglob("*"):
+        if p.suffix in (".json", ".jsonl", ".csv", ".md") and home.search(p.read_text(encoding="utf-8")):
+            hits.append(p.relative_to(ROOT).as_posix())
+    assert not hits, f"local home-directory paths in {hits}"
