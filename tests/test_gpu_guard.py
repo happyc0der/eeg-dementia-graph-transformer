@@ -84,9 +84,28 @@ def test_failed_model_status_is_a_reason(monkeypatch, tmp_path):
 
 
 def test_model_status_lookup(monkeypatch, tmp_path):
-    monkeypatch.setenv("MODEL_STATUS_CMD", str(tmp_path / "ms.cmd"))
-    assert gg.find_model_status() == tmp_path / "ms.cmd"
+    script = tmp_path / "ms.cmd"
+    script.write_text("@echo off\n")
+    monkeypatch.setenv("MODEL_STATUS_CMD", str(script))
+    assert gg.find_model_status() == script
+    # a command name is looked up on PATH; a name that resolves to nothing disables model-status
+    monkeypatch.setattr(gg.shutil, "which", lambda name: str(script) if name == "my-status" else None)
+    monkeypatch.setenv("MODEL_STATUS_CMD", "my-status")
+    assert gg.find_model_status() == script
+    monkeypatch.setenv("MODEL_STATUS_CMD", str(tmp_path / "missing.cmd"))
+    assert gg.find_model_status() is None
     monkeypatch.delenv("MODEL_STATUS_CMD")
-    monkeypatch.setattr(gg.shutil, "which", lambda name: None)
     assert gg.find_model_status() is None
     assert GpuGuard(docker_baseline={"x"}).use_model_status is False
+
+
+def test_own_pids_survives_psutil_errors(monkeypatch):
+    class Racy:
+        def parents(self):
+            return []
+
+        def children(self, recursive=False):
+            raise gg.psutil.NoSuchProcess(12345)  # a child exited while being listed
+
+    monkeypatch.setattr(gg.psutil, "Process", lambda: Racy())
+    assert gg.os.getpid() in gg._own_pids()

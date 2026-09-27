@@ -38,6 +38,8 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import psutil
+
 log = logging.getLogger(__name__)
 
 FAILED = "<failed"
@@ -45,10 +47,17 @@ UTIL_REASON = "GPU utilisation"
 
 
 def find_model_status() -> Path | None:
-    """``$MODEL_STATUS_CMD`` if set, else ``model-status`` found on ``PATH`` (or None)."""
+    """``$MODEL_STATUS_CMD`` (a path, or a command on ``PATH``) if set, else ``model-status``
+    found on ``PATH`` (or None)."""
     env = os.environ.get("MODEL_STATUS_CMD")
     if env:
-        return Path(env)
+        if Path(env).exists():
+            return Path(env)
+        found = shutil.which(env)
+        if found:
+            return Path(found)
+        log.warning("MODEL_STATUS_CMD=%r is neither a file nor a command on PATH; not using model-status", env)
+        return None
     found = shutil.which("model-status")
     return Path(found) if found else None
 
@@ -56,12 +65,10 @@ def find_model_status() -> Path | None:
 def _own_pids() -> set[int]:
     pids = {os.getpid()}
     try:
-        import psutil
-
         p = psutil.Process()
         pids |= {q.pid for q in p.parents()}
         pids |= {q.pid for q in p.children(recursive=True)}
-    except (ImportError, OSError) as e:  # pragma: no cover
+    except (OSError, psutil.Error) as e:  # e.g. a child exited while being listed
         log.warning("could not list parent/child processes: %s", e)
     return pids
 
@@ -186,7 +193,7 @@ class GpuGuard:
         self.pauses.append(rec)
         if self.pause_log is not None:
             Path(self.pause_log).parent.mkdir(parents=True, exist_ok=True)
-            with open(self.pause_log, "a") as fh:
+            with open(self.pause_log, "a", encoding="utf-8", newline="\n") as fh:
                 fh.write(json.dumps(rec) + "\n")
         log.warning("GPU free again after %.1f min; resuming", dt / 60)
         if on_resume is not None:
