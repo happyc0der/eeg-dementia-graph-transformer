@@ -2,7 +2,7 @@
 
 **Task:** 3-class classification of Alzheimer's disease (AD, n = 36), frontotemporal dementia (FTD, n = 23) and cognitively normal controls (CN, n = 29) from resting-state, eyes-closed EEG (OpenNeuro ds004504, 19 channels, 500 Hz, preprocessed `derivatives/` recordings).
 
-**Branch:** `overhaul`. The code lives in the `eegdementia/` package, with scripts in `scripts/` and tests in `tests/`. All numbers below come from the files in `results/overhaul/`.
+**Branch:** `overhaul`. The code lives in the `eegdementia/` package, with scripts in `scripts/` and tests in `tests/`. All numbers below come from the files in `results/` (called `results/overhaul/` until phase 3, when the original code moved to `legacy/`).
 
 ## TL;DR
 
@@ -20,7 +20,7 @@
 
 ## 1. Data
 
-- **Source:** the public OpenNeuro S3 bucket `s3://openneuro.org/ds004504` (no-sign-request, dataset version 1.0.9 according to `CHANGES`), downloaded to `C:\AI\datasets\ds004504` (outside the repo). Files fetched:
+- **Source:** the public OpenNeuro S3 bucket `s3://openneuro.org/ds004504` (no-sign-request, dataset version 1.0.9 according to `CHANGES`), downloaded to `$EEG_BIDS_ROOT` (outside the repo). Files fetched:
   - `participants.tsv`, `participants.json`, `dataset_description.json`, `README`, `CHANGES`.
   - `derivatives/sub-*/eeg/*.set`: **88 files, one per subject**, with data embedded (there are no `.fdt` files). They total **2,951,099,688 bytes (2.75 GiB)** and range from 13 to 55 MB each.
 - **Subjects:** 36 AD, 29 CN, 23 FTD. Sex (F/M) is 24/12 for AD, 11/18 for CN and 9/14 for FTD. Mean age is 66.4 (AD), 67.9 (CN) and 63.6 (FTD) years. MMSE is **never used**, because it is essentially the label.
@@ -43,7 +43,7 @@
 
 **Common-mode artefact.** In the native (A1-A2) derivative data, each channel's SD is about 31-38 µV in every subject and the mean inter-channel correlation is 0.92. The common-mode signal (the channel mean) has an SD of 32.4 ± 1.4 (AD), 32.9 ± 1.4 (CN) and 32.3 ± 2.8 (FTD) µV. About 78 % of its power lies at 0.5-2 Hz, and it carries **92 % of each channel's variance**. It shows no group difference (Kruskal-Wallis p = 0.14-0.68 on every statistic we checked). Once it is removed with the average reference, channel SDs fall to typical resting-EEG values (about 4-15 µV). Occipital relative alpha then reads 47 % in CN instead of 9 %, and the average-reference features classify better (section 6.7). Most likely this is a reference or drift artefact of the preprocessing. It is worth telling the dataset authors about, and **phase-2 deep models should use the average reference** (or at least never z-score native-reference channels).
 
-**Caching.** Preprocessed continuous signals are cached at `C:\AI\datasets\cache\prep_<hash>\sub-XXX.npz`. Per-epoch features, covariances and connectivity are cached at `C:\AI\datasets\cache\prep_<hash>__ep_<hash>__feat_<hash>\sub-XXX.npz`. Every folder holds a `config.json`, and the hashes are derived from the dataclass configs, so changing a setting creates a new cache instead of silently reusing an old one. Building the cache takes about 20-30 s of preprocessing plus about 4-5 min of features for 10 s epochs (14 processes).
+**Caching.** Preprocessed continuous signals are cached at `$EEG_CACHE_DIR/prep_<hash>/sub-XXX.npz`. Per-epoch features, covariances and connectivity are cached at `$EEG_CACHE_DIR/prep_<hash>__ep_<hash>__feat_<hash>/sub-XXX.npz`. Every folder holds a `config.json`, and the hashes are derived from the dataclass configs, so changing a setting creates a new cache instead of silently reusing an old one. Building the cache takes about 20-30 s of preprocessing plus about 4-5 min of features for 10 s epochs (14 processes).
 
 ## 3. Features (`eegdementia/features.py`)
 
@@ -80,8 +80,8 @@ There are 1,348 features per epoch. Each is computed from a single epoch, so ext
    - The winning setting is refitted on all outer-training subjects and applied once to the test subjects.
    - `nested_select` goes one level further: its inner CV also picks the *model family* (rbp_lr, spectral_lr, all_lr, riemann_ts_lr or all_lgbm) together with that family's grid.
 3. **Everything fitted lives inside the training fold:** the median imputer, the scaler, the tangent-space reference means, the classifier and the weights.
-   - Training epochs are weighted so that each subject carries equal weight and each class carries equal weight. This matters because subjects have 40-227 epochs and the classes are 36/29/23.
-   - For SVMs and the elastic net, at most 40 random epochs per *training* subject are used.
+   - Training epochs are weighted so that each subject carries equal weight and each class carries equal weight. This matters because subjects have 40-225 epochs and the classes are 36/29/23. *(Corrected in phase 3: this line said 40-227, the native-reference count.)*
+   - For the RBF SVMs and the elastic net, at most 40 random epochs per *training* subject are used (the linear SVM uses all epochs). *(Corrected in phase 3: this line said "SVMs".)*
 4. **Aggregation.** A subject's probability is softmax(mean of its epochs' log-probabilities), i.e. a normalised geometric mean.
 5. **Metrics**, at subject level (primary) and epoch level (secondary):
    - balanced accuracy, accuracy, macro-F1, log-loss;
@@ -391,7 +391,7 @@ res = ev.run_cv(spec, ds, splits, inner_splits=5, n_jobs=1)   # n_jobs=1 for a s
 summary = ev.summarise(res)                     # subject + epoch metrics, mean±sd, bootstrap CIs
 ```
 
-- **Saving results the phase-1 way:** `E.run_and_save(task, model_name, ds, specs_dict, n_jobs=1)` writes `results/overhaul/<task>/<model>/` (`summary.json`, predictions and per-repeat and per-fold metrics). It also puts epoch-level predictions in `C:\AI\datasets\cache\predictions\...`. Tasks are `cv3`, `legacy`, `loso3`, `loso_ad_cn`, `loso_ftd_cn`, `cv_ad_cn`, `cv_ftd_cn` and `cv_ad_ftd` (`E.task_data_and_splits`).
+- **Saving results the phase-1 way:** `E.run_and_save(task, model_name, ds, specs_dict, n_jobs=1)` writes `results/<task>/<model>/` (`summary.json`, predictions and per-repeat and per-fold metrics). It also puts epoch-level predictions in `$EEG_CACHE_DIR/predictions/...`. Tasks are `cv3`, `legacy`, `loso3`, `loso_ad_cn`, `loso_ftd_cn`, `cv_ad_cn`, `cv_ftd_cn` and `cv_ad_ftd` (`E.task_data_and_splits`).
 - **Labels and class names:** labels are 0 = AD, 1 = CN, 2 = FTD (`config.CLASS_NAMES`). Binary tasks recode them to [neg, pos] = [CN, AD] and so on.
 - **CLI:** `scripts/run_phase1.py --task cv3 --models a,b [--repeats 10 --n-jobs 20 --reference average|native --epoch-length 10 --epoch-step 5 --keep-boundaries --subject-mean --tag NAME --skip-existing]`. The other scripts are `scripts/build_cache.py` (the same epoch and reference flags), `scripts/permutation_test.py --model M --n-perm N`, `scripts/interpret.py` and `scripts/make_figures.py`. The full reproduction is `scripts/run_all_phase1.sh`.
 - **Low-level entry points:**
@@ -414,7 +414,7 @@ bash scripts/run_all_phase1.sh         # caches, all experiments, permutation te
 Data download (about 2.8 GB):
 
 ```bash
-uvx --from awscli aws s3 sync --no-sign-request s3://openneuro.org/ds004504/derivatives C:/AI/datasets/ds004504/derivatives
+uvx --from awscli aws s3 sync --no-sign-request s3://openneuro.org/ds004504/derivatives $EEG_BIDS_ROOT/derivatives
 # plus participants.tsv, participants.json, dataset_description.json (aws s3 cp)
 ```
 

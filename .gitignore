@@ -1,4 +1,25 @@
-# ---- Data (not redistributed; see README "Dataset") ----
+# ---- Data, caches and pretrained weights (never redistributed; see README "Data") ----
+# default locations of $EEG_BIDS_ROOT, $EEG_CACHE_DIR and $EEG_WEIGHTS_DIR
+/data/
+*.set
+*.fdt
+*.edf
+*.npy
+*.npz
+*.parquet
+
+# ---- Model weights / checkpoints ----
+*.pth
+*.pt
+*.pkl
+*.ckpt
+*.safetensors
+
+# ---- Raw console output of long runs (results/**/summary.json, tables and logs/*.jsonl are kept) ----
+results/phase2/logs/*.out
+*.log
+
+# ---- Legacy (Spring 2025) pipeline: prepared data and run outputs ----
 eeg-data/
 eeg_data/
 intermediate-data/
@@ -7,23 +28,13 @@ model-data/
 model_data/
 model-data_30k/
 model-data_7.5k/
-*.set
-*.fdt
-*.edf
-*.npy
-*.npz
 EEGPT/
-
-# ---- Model weights / checkpoints ----
-*.pth
-*.pt
-*.pkl
-*.ckpt
-models/
-svm-models/
-svm-models_best/
-
-# ---- Run outputs (curated copies live in results/) ----
+legacy/models/
+legacy/svm-models/
+legacy/svm-models_best/
+legacy/spatial_spectral_*/
+legacy/spatial_results_*/
+legacy/results_*/
 /spatial_spectral_*/
 /spatial_results_*/
 /results_*/
@@ -33,23 +44,18 @@ wandb/
 # ---- Original teammate git history, kept locally only ----
 .git-teammate-original/
 
-# ---- Local scratch ----
-test copy.py
-*.log
-
-# ---- Python / env ----
+# ---- Python / env / tools ----
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 .env
 .ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
 
 # ---- IDE / OS ----
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
-
-# ---- Phase-2 raw console output (logs/*.jsonl and results are kept) ----
-results/overhaul/phase2/logs/*.out

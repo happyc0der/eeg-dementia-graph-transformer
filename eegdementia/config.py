@@ -21,7 +21,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 BIDS_ROOT = Path(os.environ.get("EEG_BIDS_ROOT", "C:/AI/datasets/ds004504"))
 CACHE_DIR = Path(os.environ.get("EEG_CACHE_DIR", str(BIDS_ROOT.parent / "cache")))
-RESULTS_DIR = REPO_ROOT / "results" / "overhaul"
+RESULTS_DIR = REPO_ROOT / "results"
 
 # --------------------------------------------------------------------------------------
 # Dataset constants (ds004504)
@@ -86,7 +86,7 @@ class PrepConfig:
     # "average" (default) or "native" (A1-A2 linked mastoids, as distributed). In the
     # native-reference derivatives ~92 % of every channel's variance is one common-mode,
     # mostly <2 Hz signal (~32 uV SD in every subject, inter-channel r ~0.92, no group
-    # difference); the average reference removes it. See results/overhaul/phase1_summary.md.
+    # difference); the average reference removes it. See results/phase1_summary.md.
     reference: str = "average"
     sfreq: float = 250.0  # resampling target (Hz); 250 Hz keeps everything up to 45 Hz exact
 

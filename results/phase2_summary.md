@@ -7,7 +7,7 @@
 
 The phase-2 numbers are therefore directly comparable with `phase1_summary.md`.
 
-**Pre-registration:** [`phase2_plan.md`](phase2_plan.md) was committed as `d651b4f` at 01:47:02 on 2026-09-27 and pushed straight away. The first outer-fold run started at 01:47:28. All results below come from `results/overhaul/phase2/` and were produced by `scripts/run_phase2.py` and `scripts/phase2_report.py`.
+**Pre-registration:** [`phase2_plan.md`](phase2_plan.md) was committed as `d651b4f` at 01:47:02 on 2026-09-27 and pushed straight away. The first outer-fold run started at 01:47:28. All results below come from `results/phase2/` (called `results/overhaul/phase2/` until phase 3) and were produced by `scripts/run_phase2.py` and `scripts/phase2_report.py`.
 
 ## TL;DR
 
@@ -87,7 +87,7 @@ The implementations are from braindecode 1.8.1 (torch 2.11 + CUDA 12.8).
 - AdamW with a cosine schedule, batch size 64, and no augmentation.
 - `tests/test_deep.py` checks that the early-stopping subjects are always training subjects of the outer fold and that the five validation folds partition them.
 
-**Weights** (all in `C:\AI\models\eeg-pretrained`, never committed):
+**Weights** (all in `$EEG_WEIGHTS_DIR`, never committed):
 
 | model | source | version | size | sha256 | licence |
 |---|---|---|---:|---|---|
@@ -311,7 +311,7 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 - CPU work ran at below-normal priority, with 4-12 worker processes: the LR heads (about 35-40 min per model per 50 folds), BIOT embedding extraction and the permutation test.
 - While 10-12 CPU workers ran at the same time, GPU folds took 2-3× longer (EEGNet about 100 s instead of about 40 s per fold). These small networks are limited by CPU-side batch preparation and Python overhead, not by the GPU.
 
-**GPU etiquette.** `GpuGuard` ran `C:\AI\bin\model-status.cmd` and `nvidia-smi` before each of the 203 outer folds and at most every 5 min inside training.
+**GPU etiquette.** `GpuGuard` ran the machine's `model-status` script (`$MODEL_STATUS_CMD`) and `nvidia-smi` before each of the 203 outer folds and at most every 5 min inside training.
 
 - **Keshav's jobs:** no Ollama model, no other CUDA process, no WSL job, no game or emulator and no new Docker container appeared all night. The pre-existing `quirky_bell` swebench container is CPU-only and was ignored. **No pause was caused by Keshav's work.**
 - **Two self-inflicted pauses** (`phase2/gpu_pauses.jsonl`):
@@ -343,7 +343,7 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 ## 11. Issues found (please check)
 
 - **Phase-1 summary epoch counts are wrong in the text** (the phase-1 results themselves are fine).
-  - The text says 187 amplitude-rejected windows and 11,796 epochs (4,929 AD / 4,075 CN / 2,792 FTD), with 40-227 per subject.
+  - The text says 187 amplitude-rejected windows and 11,796 epochs (4,929 AD / 4,075 CN / 2,792 FTD), with 40-227 per subject. *(Phase 3: these are the counts of the native-reference sensitivity cache, `cv3__native_ref`, whose `summary.json` files say `n_epochs = 11796`; amplitude rejection is computed per reference, so it keeps different windows.)*
   - The cached data that every phase-1 and phase-2 model used has **367 amplitude-rejected windows and 11,616 epochs (4,852 / 4,012 / 2,752), with 40-225 per subject**. Every phase-1 `summary.json` also says `n_epochs = 11616`.
   - The text is corrected in this commit.
 - **braindecode's `CBraMod(return_encoder_output=True)`** applies the pretraining head `proj_out`, unlike the authors' downstream usage. We remove it. This is worth an upstream issue.
@@ -355,7 +355,7 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 ```bash
 uv sync --extra deep --extra cu128        # or: --extra deep --extra cpu (no GPU)
 uv run pytest                             # 27 tests
-# frozen embeddings are computed on first use and cached (C:\AI\datasets\cache\embeddings)
+# frozen embeddings are computed on first use and cached ($EEG_CACHE_DIR/embeddings)
 uv run python scripts/run_phase2.py --task cv3 --models eegnet,shallow,cbramod_ft --gpu
 uv run python scripts/run_phase2.py --task cv3 --models cbramod_lr,labram_lr,cbramod_spectral_lr,biot_lr --n-jobs 10
 uv run python scripts/run_phase2.py --task legacy --models ... [--gpu]
@@ -366,7 +366,7 @@ uv run python scripts/phase2_report.py --posthoc-members labram_lr,shallow
 ```
 
 - Weights are downloaded on first use from the URLs in `eegdementia/deep.py` (`PRETRAINED`) and checked against their sha256. Set `EEG_WEIGHTS_DIR` to change the location.
-- GPU runs are sequential and checkpointed per outer fold (`C:\AI\datasets\cache\phase2_ckpt`), so an interrupted run resumes. `GpuGuard` (`eegdementia/gpu_guard.py`) runs before every fold and every 5 min during training.
+- GPU runs are sequential and checkpointed per outer fold (`$EEG_CACHE_DIR/phase2_ckpt`), so an interrupted run resumes. `GpuGuard` (`eegdementia/gpu_guard.py`) runs before every fold and every 5 min during training.
 
 ## References
 

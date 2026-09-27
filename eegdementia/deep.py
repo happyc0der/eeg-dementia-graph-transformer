@@ -292,7 +292,7 @@ def cached_embeddings(model_name: str, X200, cache_key: str, cache_dir: Path, **
 class TorchEpochClassifier:
     """Harness estimator for a torch network on raw epochs.
 
-    Training (all settings fixed a priori, see results/overhaul/phase2_plan.md):
+    Training (all settings fixed a priori, see results/phase2_plan.md):
 
     * ``n_bags`` > 1 (default 5): the *training subjects passed to fit* are split into
       ``n_bags`` class-stratified subject folds; one network is trained per fold on the other

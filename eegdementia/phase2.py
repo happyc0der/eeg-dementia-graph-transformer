@@ -1,5 +1,5 @@
 """Phase-2 dataset inputs and model specifications (pre-registered in
-results/overhaul/phase2_plan.md; do not change settings after results are seen)."""
+results/phase2_plan.md; do not change settings after results are seen)."""
 
 from __future__ import annotations
 

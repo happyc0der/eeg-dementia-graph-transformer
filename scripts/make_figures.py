@@ -1,4 +1,4 @@
-"""Build tables (CSV + markdown) and figures from results/overhaul/*.
+"""Build tables (CSV + markdown) and figures from results/*.
 
     uv run python scripts/make_figures.py --best spectral_lr
 """

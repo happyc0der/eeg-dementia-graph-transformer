@@ -1,4 +1,4 @@
-"""Phase-2 runner: deep models through the phase-1 harness (see results/overhaul/phase2_plan.md).
+"""Phase-2 runner: deep models through the phase-1 harness (see results/phase2_plan.md).
 
 Examples
 --------
