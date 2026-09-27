@@ -118,13 +118,36 @@ def run_and_save(
     n_boot: int = 2000,
     out_root: Path = RESULTS_DIR,
     tag: str = "",
+    checkpoint_dir: Path | None = None,
+    before_fold=None,
+    extra_meta: dict | None = None,
 ) -> dict:
     spec = specs[model]
     tds, splits = task_data_and_splits(task, ds, n_repeats=n_repeats)
-    if task.startswith("loso") or task == "legacy":
-        inner_splits = inner_splits  # same inner CV on the training subjects
     t0 = time.time()
-    res = ev.run_cv(spec, tds, splits, inner_splits=inner_splits, n_jobs=n_jobs, seed=OUTER_SEED)
+    res = ev.run_cv(
+        spec, tds, splits, inner_splits=inner_splits, n_jobs=n_jobs, seed=OUTER_SEED,
+        checkpoint_dir=checkpoint_dir, before_fold=before_fold,
+    )
+    meta = {"inner_splits": inner_splits, "wall_time_s": time.time() - t0, "n_jobs": n_jobs, **(extra_meta or {})}
+    return save_result(task, model, spec.description, ds, tds, len(splits), res, n_boot=n_boot,
+                       out_root=out_root, tag=tag, extra_meta=meta)
+
+
+def save_result(
+    task: str,
+    model: str,
+    description: str,
+    ds: ev.Dataset,
+    tds: ev.Dataset,
+    n_outer_splits: int,
+    res: dict,
+    n_boot: int = 2000,
+    out_root: Path = RESULTS_DIR,
+    tag: str = "",
+    extra_meta: dict | None = None,
+) -> dict:
+    """Summarise a ``run_cv``-style result and write it in the phase-1 layout."""
     summ = ev.summarise(res, n_boot=n_boot, seed=OUTER_SEED)
     outdir = Path(out_root) / (task + (f"__{tag}" if tag else "")) / model
     outdir.mkdir(parents=True, exist_ok=True)
@@ -143,20 +166,18 @@ def run_and_save(
     meta = {
         "task": task,
         "model": model,
-        "description": spec.description,
+        "description": description,
         "class_names": cn,
         "n_subjects": int(len(tds.subjects)),
         "n_epochs": int(len(tds.groups)),
-        "n_outer_splits": len(splits),
-        "inner_splits": inner_splits,
+        "n_outer_splits": n_outer_splits,
         "selection_criterion": "pooled inner-OOF subject-level balanced accuracy, ties -> macro OvR AUC",
         "aggregation": "subject probability = softmax(mean epoch log-probability)",
         "pipeline_config": ds.cfg.to_dict(),
         "chosen_params_counts": chosen,
-        "wall_time_s": time.time() - t0,
-        "n_jobs": n_jobs,
         "platform": platform.platform(),
         "processor": platform.processor(),
+        **(extra_meta or {}),
     }
     summ = {**meta, **summ}
     (outdir / "summary.json").write_text(json.dumps(summ, indent=2))

@@ -342,6 +342,38 @@ def fit_predict(
 # --------------------------------------------------------------------------------------
 # Running an experiment over many splits
 # --------------------------------------------------------------------------------------
+def _run_sequential_checkpointed(spec, ds, splits, inner_splits, seed, checkpoint_dir, before_fold):
+    """Sequential variant of ``run_cv`` for GPU models: one pickle per finished outer fold,
+    so an interrupted run resumes where it stopped. Same seeds as the parallel path."""
+    import pickle
+
+    res = []
+    if checkpoint_dir is not None:
+        checkpoint_dir = Path(checkpoint_dir)
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    for sp in splits:
+        f = checkpoint_dir / f"r{sp.repeat:02d}_f{sp.fold:02d}.pkl" if checkpoint_dir is not None else None
+        if f is not None and f.exists():
+            r = pickle.loads(f.read_bytes())
+            # a checkpoint must belong to exactly this split
+            assert r["split_test"] == tuple(sp.test), f"stale checkpoint {f}"
+            res.append(r)
+            continue
+        if before_fold is not None:
+            before_fold(sp)
+        t0 = time.time()
+        r = fit_predict(spec, ds, sp, inner_splits, seed + 17 * sp.repeat + sp.fold)
+        r["split_test"] = tuple(sp.test)
+        r["fold_time_s"] = time.time() - t0
+        log.info("%s repeat %d fold %d done in %.0f s", getattr(spec, "name", "?"), sp.repeat, sp.fold, r["fold_time_s"])
+        if f is not None:
+            tmp = f.with_suffix(".tmp")
+            tmp.write_bytes(pickle.dumps(r))
+            tmp.replace(f)
+        res.append(r)
+    return res
+
+
 def run_cv(
     spec,
     ds: Dataset,
@@ -350,15 +382,27 @@ def run_cv(
     n_jobs: int = 12,
     seed: int = 0,
     verbose: int = 0,
+    checkpoint_dir: str | Path | None = None,
+    before_fold: Callable | None = None,
 ) -> dict:
-    """Run nested evaluation over ``splits`` in parallel. Returns epoch- and subject-level predictions."""
+    """Run nested evaluation over ``splits`` in parallel. Returns epoch- and subject-level predictions.
+
+    With ``checkpoint_dir`` or ``before_fold`` (a callable run before every outer fold, e.g.
+    a GPU-availability guard) the folds run sequentially in this process with per-fold
+    checkpoints; seeds and results are identical to the parallel path.
+    """
     from joblib import Parallel, delayed
 
     t0 = time.time()
-    res = Parallel(n_jobs=n_jobs, verbose=verbose)(
-        delayed(fit_predict)(spec, ds, sp, inner_splits, seed + 17 * sp.repeat + sp.fold) for sp in splits
-    )
+    if checkpoint_dir is not None or before_fold is not None:
+        res = _run_sequential_checkpointed(spec, ds, splits, inner_splits, seed, checkpoint_dir, before_fold)
+    else:
+        res = Parallel(n_jobs=n_jobs, verbose=verbose)(
+            delayed(fit_predict)(spec, ds, sp, inner_splits, seed + 17 * sp.repeat + sp.fold) for sp in splits
+        )
     runtime = time.time() - t0
+    if res and all("fold_time_s" in r for r in res):
+        runtime = float(sum(r["fold_time_s"] for r in res))  # compute time, excluding pauses / resumes
     ep_rows, subj_rows = [], []
     for sp, r in zip(splits, res):
         te = r["test_idx"]
@@ -567,3 +611,103 @@ def permutation_test(
         "n_perm": int(n_perm),
         "null": scores.tolist(),
     }
+
+
+# --------------------------------------------------------------------------------------
+# Paired comparison of two models evaluated on the same outer splits
+# --------------------------------------------------------------------------------------
+def paired_comparison(
+    preds_a: pd.DataFrame,
+    preds_b: pd.DataFrame,
+    class_names,
+    metric: str = "balanced_accuracy",
+    n_boot: int = 2000,
+    seed: int = 0,
+) -> dict:
+    """Model A minus model B on identical subjects / repeats (subject-level predictions).
+
+    * per-repeat differences (repeats are not independent: same 88 subjects, so their SD
+      understates uncertainty and no p-value is attached to them);
+    * a class-stratified paired bootstrap over subjects: each resample draws subjects and
+      evaluates both models on the same draw in every repeat, differences are averaged over
+      repeats -> 95 % CI and the bootstrap probability that A <= B.
+    """
+    reps = sorted(set(preds_a["repeat"]) & set(preds_b["repeat"]))
+    a = preds_a[preds_a["repeat"].isin(reps)].sort_values(["repeat", "subject"]).reset_index(drop=True)
+    b = preds_b[preds_b["repeat"].isin(reps)].sort_values(["repeat", "subject"]).reset_index(drop=True)
+    if not (np.array_equal(a["subject"], b["subject"]) and np.array_equal(a["y"], b["y"])
+            and np.array_equal(a["fold"], b["fold"])):
+        raise ValueError("the two models were not evaluated on identical outer splits")
+    n = len(class_names)
+    Pa, Pb = _proba_cols(a, class_names), _proba_cols(b, class_names)
+
+    def score(y, P):
+        if metric == "balanced_accuracy":
+            cm = confusion(y, P.argmax(1), n)
+            return float((np.diag(cm) / np.maximum(cm.sum(1), 1)).mean())
+        return metrics_from_proba(y, P, class_names)[metric]
+
+    per_rep = []
+    idx_rep = {}
+    for r in reps:
+        m = (a["repeat"] == r).to_numpy()
+        y = a.loc[m, "y"].to_numpy()
+        per_rep.append(score(y, Pa[m]) - score(y, Pb[m]))
+        idx_rep[r] = (np.flatnonzero(m), a.loc[m, "subject"].to_numpy())
+    per_rep = np.array(per_rep)
+    rng = np.random.default_rng(seed)
+    subj_label = a.groupby("subject")["y"].first()
+    by_class = [subj_label.index[subj_label == c].to_numpy() for c in sorted(subj_label.unique())]
+    # row of every subject within each repeat
+    pos = {r: pd.Series(ix, index=s) for r, (ix, s) in idx_rep.items()}
+    diffs = []
+    for _ in range(n_boot):
+        draw = np.concatenate([rng.choice(s, len(s), replace=True) for s in by_class])
+        d = []
+        for r in reps:
+            rows = pos[r].loc[draw].to_numpy()
+            y = a["y"].to_numpy()[rows]
+            d.append(score(y, Pa[rows]) - score(y, Pb[rows]))
+        diffs.append(np.mean(d))
+    diffs = np.array(diffs)
+    return {
+        "metric": metric,
+        "n_repeats": len(reps),
+        "mean_diff": float(per_rep.mean()),
+        "per_repeat_diff": per_rep.tolist(),
+        "sd_per_repeat_diff": float(per_rep.std(ddof=1)) if len(per_rep) > 1 else 0.0,
+        "n_repeats_a_better": int((per_rep > 0).sum()),
+        "n_repeats_equal": int((per_rep == 0).sum()),
+        "boot_ci95": [float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5))],
+        "boot_p_a_le_b": float(np.mean(diffs <= 0)),
+    }
+
+
+def soft_vote(epoch_preds: list[pd.DataFrame], class_names, subjects: pd.DataFrame) -> dict:
+    """Soft vote (mean epoch log-probability) of models evaluated on identical outer splits,
+    exactly as ``fit_predict`` combines ``combine="vote"`` members. Returns a run_cv-style dict."""
+    cols = [f"p_{c}" for c in class_names]
+    keys = ["repeat", "fold", "subject", "epoch_index", "y"]
+    base = epoch_preds[0].sort_values(["repeat", "epoch_index"]).reset_index(drop=True)
+    logp = np.zeros((len(base), len(cols)))
+    for d in epoch_preds:
+        d = d.sort_values(["repeat", "epoch_index"]).reset_index(drop=True)
+        if not d[keys].equals(base[keys]):
+            raise ValueError("members were not evaluated on identical outer splits")
+        logp += np.log(np.clip(d[cols].to_numpy(), EPS, 1))
+    logp /= len(epoch_preds)
+    p = np.exp(logp - logp.max(1, keepdims=True))
+    p /= p.sum(1, keepdims=True)
+    ep = base[keys].copy()
+    for i, c in enumerate(cols):
+        ep[c] = p[:, i]
+    subj_rows = []
+    for (r, k), d in ep.groupby(["repeat", "fold"], sort=True):
+        sids, sp_ = aggregate_subjects(d[cols].to_numpy(), d["subject"].to_numpy())
+        subj_rows.append(pd.DataFrame({
+            "repeat": r, "fold": k, "subject": sids, "y": subjects.loc[sids, "label"].to_numpy(),
+            **{c: sp_[:, i] for i, c in enumerate(cols)},
+            "n_epochs": d["subject"].value_counts().loc[sids].to_numpy(), "params": "{}",
+        }))
+    return {"epoch": ep, "subject": pd.concat(subj_rows, ignore_index=True), "runtime_s": 0.0,
+            "inner": None, "class_names": list(class_names)}

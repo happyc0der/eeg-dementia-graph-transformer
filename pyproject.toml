@@ -23,8 +23,40 @@ dependencies = [
     "psutil>=7.2.2",
 ]
 
+[project.optional-dependencies]
+# Phase 2 deep models. Pick exactly one torch flavour:
+#   uv sync --extra deep --extra cpu      (any machine)
+#   uv sync --extra deep --extra cu128    (NVIDIA GPU, CUDA 12.8 wheels)
+# torch is pinned to 2.11 because braindecode needs torchaudio, whose last release is 2.11.
+deep = ["braindecode[hub]==1.8.1", "huggingface_hub>=0.30", "safetensors>=0.4"]
+cpu = ["torch==2.11.*", "torchaudio==2.11.*"]
+cu128 = ["torch==2.11.*", "torchaudio==2.11.*"]
+
 [dependency-groups]
 dev = ["pytest>=8"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "cu128" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu128", extra = "cu128" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu128", extra = "cu128" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]
