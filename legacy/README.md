@@ -9,6 +9,38 @@ It is **kept for reference and credit, not maintained**. The files were moved he
 - **Team (NYU Neuroinformatics, Spring 2025):** [Subhrajit Dey (@subro608)](https://github.com/subro608), who wrote most of the model and training code, [Keshav Rajput (@happyc0der)](https://github.com/happyc0der), [Sirish Visweswar (@itsSirish)](https://github.com/itsSirish) and [@terka2610](https://github.com/terka2610). The original shared repository is [subro608/Neuroinformatics](https://github.com/subro608/Neuroinformatics). This repo is a cleaned-up snapshot with a fresh history.
 - The EEGNet baseline and the original data-prep script build on [Leofierus/eeg-alzheimers-detection](https://github.com/Leofierus/eeg-alzheimers-detection).
 
+## The model (as documented in the original README)
+
+```mermaid
+flowchart LR
+    A[ds004504 derivatives<br/>88 subjects, 19 ch, 500 Hz] --> B[data_prep.py<br/>subject split 80/20<br/>drop first 30 s, resample 95 Hz<br/>15 s chunks]
+    B --> C[raw EEG chunk<br/>19 x 2000]
+    B --> D[Welch band power<br/>scales 3/4/5 bands<br/>19 channels + 5 lobes]
+    B --> E[adjacency<br/>0.5 electrode distance +<br/>0.5 abs correlation]
+    C --> F[Spatial branch<br/>dilated Conv2d + Conv1d<br/>3 x transformer encoder]
+    D --> G[Graph branch<br/>per-scale embed + attention<br/>GCN + 4 x graph attention]
+    F <--> H[2 x bidirectional<br/>cross-view attention]
+    G <--> H
+    H --> I[attention pooling<br/>+ fusion attention]
+    I --> J[MLP classifier<br/>AD / CN / FTD]
+```
+
+- **Preprocessing** ([`data_prep.py`](data_prep.py)) starts from the dataset's preprocessed `derivatives/` recordings (already band-pass filtered and ICA/ASR-cleaned by the dataset authors). Participants are split 80/20 by subject. For each recording the first 30 s are dropped and the signal is resampled to 95 Hz. It is then cut into 1425-sample (15 s) chunks (`--chunk-size 1424`; the crop end is inclusive), and a random 10 % of training-subject chunks form the within-subject test set.
+- **Features** ([`eeg_dataset_multispatialgraph_spectral_advanced.py`](eeg_dataset_multispatialgraph_spectral_advanced.py)):
+  - Raw signals are z-scored per channel.
+  - Log Welch band power is computed at three spectral "scales": 3 bands (0.5-8, 8-13, 13-30 Hz), 4 bands (delta, theta, alpha, beta) and 5 bands (adding gamma). Each is computed per electrode and averaged per lobe (frontal, central, temporal, parietal, occipital).
+  - The dynamic adjacency mixes 10-20 electrode distance with absolute signal correlation.
+- **Model** ([`eeg_multi_spatial_graph_spectral_advanced.py`](eeg_multi_spatial_graph_spectral_advanced.py)): `MVTSpatialSpectralModel`, shown in the diagram above.
+- **Training** ([`train_kfold_multi_spatial_graph_spectral_advanced.py`](train_kfold_multi_spatial_graph_spectral_advanced.py)):
+  - Classes are balanced by undersampling (729 chunks each), then trained with stratified 5-fold CV.
+  - The optimiser is AdamW (lr 3e-4, wd 1e-3) with a 5-epoch warm-up and ReduceLROnPlateau.
+  - The loss is label-smoothed cross-entropy plus auxiliary spatial/graph heads (0.3) and a cosine alignment loss between the branches (0.1).
+  - Training uses mixed precision on GPU, gradient clipping at 0.3, and early stopping with patience 30.
+  - The checkpoint with the best validation accuracy across folds is kept as `best_model_overall.pth`.
+- **Evaluation** ([`test_multispatial_graph_spectral_advanced.py`](test_multispatial_graph_spectral_advanced.py)) reports accuracy, balanced accuracy, weighted P/R/F1, per-class specificity, ROC-AUC and PR-AUC, the confusion matrix and inference time.
+
+The preprocessing and model-selection problems of this pipeline are listed under [Known problems](#known-problems-why-the-project-was-re-evaluated) below.
+
 ## What the old pipeline reported
 
 The unit of evaluation was a 15-second EEG chunk (95 Hz, 1425 samples). The 88 subjects were split once, 80/20 by subject (pandas `sample(frac=0.8, random_state=42)`), giving **18 held-out subjects** (7 AD, 6 CN, 5 FTD; 873 chunks).

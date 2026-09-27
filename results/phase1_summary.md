@@ -423,5 +423,5 @@ uvx --from awscli aws s3 sync --no-sign-request s3://openneuro.org/ds004504/deri
 
 - Miltiadous, A., Tzimourta, K. D., Afrantou, T., et al. (2023). A Dataset of Scalp EEG Recordings of Alzheimer's Disease, Frontotemporal Dementia and Healthy Subjects from Routine EEG. *Data*, 8(6), 95. https://doi.org/10.3390/data8060095. Tables 2-3 give the LOSO benchmarks quoted above.
 - Miltiadous, A., Gionanidis, E., Tzimourta, K. D., Giannakeas, N., & Tzallas, A. T. (2023). DICE-net: A Novel Convolution-Transformer Architecture for Alzheimer Detection in EEG Signals. *IEEE Access*, 11, 71840-71858. https://doi.org/10.1109/ACCESS.2023.3294618
-- Miltiadous, A., Ntetska, A., Aspiotis, V., et al. (2026). The AHEPA EEG benchmark: setting the standard for machine learning in dementia diagnosis, a scoping review. *Cognitive Neurodynamics*, 20(1). https://doi.org/10.1007/s11571-026-10464-w (PMC13184051). Table 15 gives the validity-1 means.
+- Miltiadous, A., Ntetska, A., Aspiotis, V., et al. (2026). The AHEPA EEG benchmark: setting the standard for machine learning in dementia diagnosis, a scoping review. *Cognitive Neurodynamics*, 20(1), 95. https://doi.org/10.1007/s11571-026-10464-w (PMC13184051). Table 15 gives the validity-1 means.
 - Dataset: OpenNeuro ds004504 v1.0.9, https://doi.org/10.18112/openneuro.ds004504.v1.0.9 (CC0).

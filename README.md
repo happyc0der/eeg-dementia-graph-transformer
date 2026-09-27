@@ -8,7 +8,7 @@ Three-way classification of **Alzheimer's disease (AD)**, **frontotemporal demen
 - Phase 2 (deep models): [`results/phase2_plan.md`](results/phase2_plan.md), committed before any outer-fold run, and [`results/phase2_summary.md`](results/phase2_summary.md)
 - The original 2025 code, its credits and its known problems: [`legacy/`](legacy/)
 
-Every table below is generated from the files in [`results/`](results/) by [`scripts/make_readme_tables.py`](scripts/make_readme_tables.py), and `tests/test_readme.py` fails if the README and the result files disagree.
+Every results table below is generated from the files in [`results/`](results/) by [`scripts/make_readme_tables.py`](scripts/make_readme_tables.py), and `tests/test_readme.py` fails if the README and the result files disagree.
 
 ## Contents
 
@@ -54,7 +54,7 @@ Subject-level balanced accuracy is the mean over the 10 repeats ± the SD across
 
 - **Thirteen of the 16 EEG-only feature pipelines land between 58 and 61 %** ([full table](results/tables/cv3.md)), and their CIs overlap almost completely. Letting the inner CV choose the model family as well (`nested_select`, 58.3 %) is the unbiased estimate of "pick the best feature model"; the 2-3 pp gap to the best single model is the optimism of choosing a winner after the fact.
 - **Deep models do not beat features.** Frozen foundation-model embeddings with a linear head behave like spectral features (LaBraM 61.3 %, CBraMod 59.0 %). ShallowFBCSPNet, whose architecture is a learned filter bank followed by log band power, reaches 60.3 %. EEGNet (52.3 %), fine-tuned CBraMod (54.0 %) and frozen BIOT (52.4 %) are significantly *worse* than the soft vote; fine-tuning CBraMod on about 56 subjects per bag lost 5 pp against freezing it. Why: with 70 training subjects per fold the networks start memorising subjects within a few epochs (ShallowFBCSPNet's median early-stopping epoch is 2 of up to 40), and the information the classifiers use is the EEG slowing that band power already captures ([below](#what-drives-the-classifier)).
-- **The only positive paired CI is post hoc.** Adding ShallowFBCSPNet to the soft vote gives 62.9 % (+1.8 pp [+0.1, +3.5], better in 7 of 10 repeats). But ShallowFBCSPNet was picked *because* it was the best end-to-end model, it is one of about 13 comparisons against the soft vote, and there is no multiplicity correction. It is a **hypothesis for an independent dataset, not a finding**. The pre-registered hybrid (soft vote + frozen CBraMod) gives +1.1 pp [−1.1, +3.5].
+- **The only positive paired CI is post hoc.** Adding ShallowFBCSPNet to the soft vote gives 62.9 % (+1.8 pp [+0.1, +3.5], better in 7 of 10 repeats). But ShallowFBCSPNet was picked *because* it was the best end-to-end model, it is one of 11 phase-2 comparisons against the soft vote, and there is no multiplicity correction. It is a **hypothesis for an independent dataset, not a finding**. The pre-registered hybrid (soft vote + frozen CBraMod) gives +1.1 pp [−1.1, +3.5].
 - **CN is easy, FTD is hard.** Across the 13 best feature pipelines CN recall is 77-90 %, but FTD recall only 26-39 %; the soft vote classifies 46 % of FTD subjects as AD.
 
 ### Binary tasks and the literature
@@ -332,6 +332,7 @@ Per-model compute times are in each `summary.json` (`runtime_s`, `wall_time_s`).
 - **Age.** FTD patients are about 4 years younger than controls, and age alone separates FTD from CN at 58-60 %. The EEG models (75-79 %) are well above that, but no age-matched analysis was run.
 - **Preprocessed input.** Everything starts from the dataset authors' derivatives (their filtering, ASR and ICA). The native-reference common-mode artefact found here suggests also checking the raw recordings.
 - **EEGPT was not evaluated.** Its official weights are only on a figshare link that blocks scripted download, and the re-hosted copy's configuration does not match the official checkpoint, so its provenance could not be verified. LaBraM fine-tuning, an optional extra in the plan, was not run either.
+- **Deep models were not tuned.** To avoid tuning on 88 subjects, every network used library or paper defaults fixed in advance, 10 s windows, no data augmentation and no hyper-parameter search. "Deep models do not beat features" holds for these pre-registered settings at this sample size; it does not rule out gains from tuned training, augmentation or pretraining on many more subjects.
 - **Regularisation grid edge.** The C grid of the logistic-regression heads (1e-4 … 1, pre-registered for phase 2) was not extended after seeing that the high-dimensional heads (the 3,800-d embeddings, and `all_lr` with 1,213 features) often chose its smallest value, so they may be under-regularised.
 - **Calibration.** Subject probabilities average the log-probabilities of about 130 correlated epochs, which makes them overconfident, badly so for the high-dimensional LR models (subject-level log-loss 1.2-1.5, worse than the 1.10 of a uniform guess). Balanced accuracy and AUC are unaffected, but the probabilities are not calibrated risks.
 
@@ -359,7 +360,7 @@ Per-model compute times are in each `summary.json` (`runtime_s`, `wall_time_s`).
 
 **Dataset** (please cite it if you use it): Miltiadous, A., Tzimourta, K. D., Afrantou, T., et al. (2023). A Dataset of Scalp EEG Recordings of Alzheimer's Disease, Frontotemporal Dementia and Healthy Subjects from Routine EEG. *Data*, 8(6), 95. https://doi.org/10.3390/data8060095. OpenNeuro ds004504 v1.0.9, https://doi.org/10.18112/openneuro.ds004504.v1.0.9 (CC0). The dataset authors also ask users to cite: Miltiadous, A., Gionanidis, E., Tzimourta, K. D., Giannakeas, N., & Tzallas, A. T. (2023). DICE-net: A Novel Convolution-Transformer Architecture for Alzheimer Detection in EEG Signals. *IEEE Access*, 11, 71840-71858. https://doi.org/10.1109/ACCESS.2023.3294618.
 
-**Benchmark used for comparison:** Miltiadous, A., Ntetska, A., Aspiotis, V., et al. (2026). The AHEPA EEG benchmark: setting the standard for machine learning in dementia diagnosis, a scoping review. *Cognitive Neurodynamics*, 20(1). https://doi.org/10.1007/s11571-026-10464-w.
+**Benchmark used for comparison:** Miltiadous, A., Ntetska, A., Aspiotis, V., et al. (2026). The AHEPA EEG benchmark: setting the standard for machine learning in dementia diagnosis, a scoping review. *Cognitive Neurodynamics*, 20(1), 95. https://doi.org/10.1007/s11571-026-10464-w.
 
 **Pretrained models and libraries.** The weights are downloaded from the official sources at pinned revisions and sha256-checked; they are not included in this repository and keep their own licences (details in [`eegdementia/deep.py`](eegdementia/deep.py) and [`results/phase2_summary.md`](results/phase2_summary.md), section 2).
 

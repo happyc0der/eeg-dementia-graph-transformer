@@ -29,7 +29,7 @@ The phase-2 numbers are therefore directly comparable with `phase1_summary.md`.
 - **Hybrids add at most 1-2 pp, which cannot be demonstrated with 88 subjects.**
   - The pre-registered primary hybrid, phase-1 soft vote + `cbramod_lr` as a 4th member, reaches **62.2 ± 3.0 %** [54.3, 69.4]. That is Δ = +1.1 pp [−1.1, +3.5], P(Δ ≤ 0) = 0.18, so not distinguishable.
   - The post-hoc vote + ShallowFBCSPNet (the best end-to-end model, chosen after seeing cv3) reaches 62.9 ± 3.3 %, Δ = +1.8 pp [+0.1, +3.5], 7 of 10 repeats better.
-    - This is the only comparison whose CI excludes 0. But it was selected after the fact, among roughly 13 comparisons, without multiplicity correction, and its lower bound is +0.1 pp.
+    - This is the only comparison whose CI excludes 0. But it was selected after the fact, among 11 comparisons against `ensemble_vote` (22 counting those against `spectral_lr`), without multiplicity correction, and its lower bound is +0.1 pp.
     - **Treat it as a hypothesis for an independent dataset, not a finding.**
   - Feature-level concatenation of CBraMod embeddings with spectral features gives 60.7 %.
 - **The FTD problem persists.**
@@ -198,7 +198,7 @@ Each cell is mean ± SD over the 10 repeats, with the class-stratified subject-b
 - **Nothing beats phase 1 in a pre-registered comparison.**
   - The primary FM model `cbramod_lr` is −2.1 pp [−7.8, +4.0].
   - The primary hybrid `ensemble_vote+cbramod_lr` is +1.1 pp [−1.1, +3.5], P(Δ ≤ 0) = 0.18.
-- **The only positive CI is post hoc.** `ensemble_vote+shallow` is +1.8 pp [+0.1, +3.5]. It is one of about 13 comparisons against `ensemble_vote`, with no multiplicity correction, and ShallowNet was chosen *because* it was the best end-to-end model.
+- **The only positive CI is post hoc.** `ensemble_vote+shallow` is +1.8 pp [+0.1, +3.5]. It is one of 11 comparisons against `ensemble_vote` (the table above; *phase 3: this said "about 13"*), with no multiplicity correction, and ShallowNet was chosen *because* it was the best end-to-end model.
 - **A useful by-product:** paired CIs for 4-member votes against the 3-member vote are narrow, ±2 pp, because the predictions are highly correlated. Small ensemble gains are therefore measurable in principle, but they would need replication on independent subjects.
 
 ## 5. AD vs FTD (binary, 5-fold × 10 repeats, 59 subjects)
