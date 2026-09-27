@@ -32,7 +32,6 @@ REGION_PAIRS = [
     (a, b) for i, a in enumerate(REGION_NAMES) for b in REGION_NAMES[i:]
 ]  # 15 (incl. within-region)
 CONN_MEASURES = ["coh", "icoh", "wpli", "aec"]
-COV_BANDS = BAND_NAMES + ["broad"]
 
 
 # --------------------------------------------------------------------------------------

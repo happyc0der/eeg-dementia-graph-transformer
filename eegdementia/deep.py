@@ -91,7 +91,9 @@ def pretrained_path(name: str, verify: bool = True) -> Path:
 
         p.parent.mkdir(parents=True, exist_ok=True)
         log.info("downloading %s weights from %s", name, info["url"])
-        urllib.request.urlretrieve(info["url"], p)
+        part = p.with_name(p.name + ".part")  # an interrupted download never looks like a weights file
+        urllib.request.urlretrieve(info["url"], part)
+        part.replace(p)
     if verify:
         got = _sha256(p)
         if got != info["sha256"]:
@@ -485,7 +487,7 @@ class TorchEpochClassifier:
             torch.cuda.empty_cache()
         self.fit_time_ = time.time() - t0
         if self.history_log is not None:
-            with open(self.history_log, "a") as fh:
+            with open(self.history_log, "a", encoding="utf-8", newline="\n") as fh:
                 fh.write(json.dumps({"name": self.name, "seed": self.seed, "n_train_subjects": len(np.unique(groups)),
                                      "fit_time_s": round(self.fit_time_, 1), "n_bags": self.n_bags,
                                      "bags": logs}) + "\n")

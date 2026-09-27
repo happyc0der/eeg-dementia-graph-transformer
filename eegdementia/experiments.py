@@ -152,12 +152,12 @@ def save_result(
     outdir = Path(out_root) / (task + (f"__{tag}" if tag else "")) / model
     outdir.mkdir(parents=True, exist_ok=True)
     cn = res["class_names"]
-    res["subject"].to_csv(outdir / "predictions_subject.csv", index=False, float_format="%.5f")
-    ev.per_repeat_metrics(res["subject"], cn).to_csv(outdir / "metrics_subject_per_repeat.csv", index=False, float_format="%.5f")
-    ev.per_repeat_metrics(res["epoch"], cn).to_csv(outdir / "metrics_epoch_per_repeat.csv", index=False, float_format="%.5f")
+    res["subject"].to_csv(outdir / "predictions_subject.csv", index=False, float_format="%.5f", lineterminator="\n")
+    ev.per_repeat_metrics(res["subject"], cn).to_csv(outdir / "metrics_subject_per_repeat.csv", index=False, float_format="%.5f", lineterminator="\n")
+    ev.per_repeat_metrics(res["epoch"], cn).to_csv(outdir / "metrics_epoch_per_repeat.csv", index=False, float_format="%.5f", lineterminator="\n")
     if not task.startswith("loso"):
-        ev.per_fold_metrics(res["subject"], cn).to_csv(outdir / "metrics_subject_per_fold.csv", index=False, float_format="%.5f")
-        ev.per_fold_metrics(res["epoch"], cn).to_csv(outdir / "metrics_epoch_per_fold.csv", index=False, float_format="%.5f")
+        ev.per_fold_metrics(res["subject"], cn).to_csv(outdir / "metrics_subject_per_fold.csv", index=False, float_format="%.5f", lineterminator="\n")
+        ev.per_fold_metrics(res["epoch"], cn).to_csv(outdir / "metrics_epoch_per_fold.csv", index=False, float_format="%.5f", lineterminator="\n")
     # epoch-level predictions are large -> cache dir (not committed)
     pdir = CACHE_DIR / "predictions" / ds.cfg.prep.key() / ds.cfg.epoch.key() / (task + (f"__{tag}" if tag else ""))
     pdir.mkdir(parents=True, exist_ok=True)

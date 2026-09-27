@@ -5,7 +5,7 @@ Typical use::
     from eegdementia import data
     subjects = data.load_participants()
     rec = data.load_preprocessed("sub-001")            # cached continuous signal
-    ep = data.epoch_recording(rec, EpochConfig())       # (n_epochs, 19, n_times) in uV
+    ep = data.epoch_recording(rec, EpochConfig())       # Epochs; ep.data is (n_epochs, 19, n_times) in uV
 
 Everything here is label-free: the preprocessing of one subject never looks at any other
 subject or at any label, so it can be done once, up front, without leaking information.

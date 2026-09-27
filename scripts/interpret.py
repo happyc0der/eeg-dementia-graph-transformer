@@ -84,7 +84,7 @@ def descriptive(ds):
                      "g_AD_FTD": float(hedges_g(grp["AD"][:, [i]], grp["FTD"][:, [i]])[0])})
     df = pd.DataFrame(rows)
     df["q_fdr"] = bh_fdr(df["p"])
-    df.sort_values("p").to_csv(OUT / "univariate_kruskal.csv", index=False, float_format="%.5g")
+    df.sort_values("p").to_csv(OUT / "univariate_kruskal.csv", index=False, float_format="%.5g", lineterminator="\n")
     return df
 
 
@@ -196,7 +196,7 @@ def coefficient_maps(ds, specs, model="spectral_lr"):
     R.topomap_grid(vals, CHANNELS, OUT / f"coefficients_{model}.png",
                    f"{model}: standardised multinomial LR coefficients (refit on all subjects, C={params['C']})",
                    units="coefficient")
-    pd.DataFrame(coef.T, index=names, columns=CLASS_NAMES).to_csv(OUT / f"coefficients_{model}.csv", float_format="%.5g")
+    pd.DataFrame(coef.T, index=names, columns=CLASS_NAMES).to_csv(OUT / f"coefficients_{model}.csv", float_format="%.5g", lineterminator="\n")
 
 
 if __name__ == "__main__":
@@ -215,7 +215,7 @@ if __name__ == "__main__":
     coefficient_maps(ds, specs, "spectral_lr")
     if not a.skip_perm:
         imp = permutation_importance(ds, specs[a.model], a.repeats, n_jobs=a.n_jobs)
-        imp.to_csv(OUT / f"permutation_importance_{a.model}.csv", index=False, float_format="%.5f")
+        imp.to_csv(OUT / f"permutation_importance_{a.model}.csv", index=False, float_format="%.5f", lineterminator="\n")
         importance_figure(imp, OUT / f"permutation_importance_{a.model}.png",
                           f"{a.model}: grouped permutation importance on held-out subjects ({a.repeats}x5-fold)")
         print(imp.head(20).to_string())

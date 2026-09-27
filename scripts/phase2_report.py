@@ -108,7 +108,7 @@ def table(task, S2, S1, refs, binary=False):
             rows.append(row)
     df = pd.DataFrame(rows)
     TAB.mkdir(parents=True, exist_ok=True)
-    df.to_csv(TAB / f"{task}.csv", index=False)
+    df.to_csv(TAB / f"{task}.csv", index=False, lineterminator="\n")
     R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
@@ -135,7 +135,7 @@ def paired(task, S2, comparators):
             })
     df = pd.DataFrame(rows)
     if len(df):
-        df.to_csv(TAB / f"paired_{task}.csv", index=False)
+        df.to_csv(TAB / f"paired_{task}.csv", index=False, lineterminator="\n")
         R.write_text(TAB / f"paired_{task}.md", md_table(df))
         R.write_text(TAB / f"paired_{task}.json", json.dumps(full, indent=1))
     return df, full

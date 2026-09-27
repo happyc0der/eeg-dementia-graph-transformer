@@ -41,7 +41,7 @@ def table_multiclass(task, S):
             "_key": s["subject"]["balanced_accuracy"]["mean"],
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
-    df.to_csv(TAB / f"{task}.csv", index=False)
+    df.to_csv(TAB / f"{task}.csv", index=False, lineterminator="\n")
     R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
@@ -64,7 +64,7 @@ def table_binary(task, S):
             "_key": s["subject"]["accuracy"]["mean"],
         })
     df = pd.DataFrame(rows).sort_values("_key", ascending=False).drop(columns="_key")
-    df.to_csv(TAB / f"{task}.csv", index=False)
+    df.to_csv(TAB / f"{task}.csv", index=False, lineterminator="\n")
     R.write_text(TAB / f"{task}.md", md_table(df))
     return df
 
