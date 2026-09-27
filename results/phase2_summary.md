@@ -354,7 +354,7 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 
 ```bash
 uv sync --extra deep --extra cu128        # or: --extra deep --extra cpu (no GPU)
-uv run pytest                             # 27 tests at the time (37 after phase 3)
+uv run pytest                             # 27 tests at the time (40 after phase 3, with the deep extra and the dataset)
 # frozen embeddings are computed on first use and cached ($EEG_CACHE_DIR/embeddings)
 uv run python scripts/run_phase2.py --task cv3 --models eegnet,shallow,cbramod_ft --gpu
 uv run python scripts/run_phase2.py --task cv3 --models cbramod_lr,labram_lr,cbramod_spectral_lr,biot_lr --n-jobs 10

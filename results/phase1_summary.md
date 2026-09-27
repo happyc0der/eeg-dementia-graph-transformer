@@ -408,7 +408,7 @@ summary = ev.summarise(res)                     # subject + epoch metrics, meanÂ
 
 ```bash
 uv sync                                # Python 3.12, locked deps
-uv run pytest                          # 19 tests at the time (37 after phase 3)
+uv run pytest                          # 19 tests at the time (40 after phase 3, with the deep extra and the dataset)
 bash scripts/run_all_phase1.sh         # caches, all experiments, permutation tests, figures (~15-20 h CPU)
 ```
 
