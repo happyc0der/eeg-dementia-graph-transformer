@@ -63,7 +63,21 @@ PRETRAINED = {
         "bd_repo": "braindecode/labram-pretrained",
         "bd_revision": "0563b6c626e7b40d9a36653b763715db94d945d7",
     },
+    "biot": {
+        "source": "https://github.com/ycq091044/BIOT (pretrained-models/EEG-six-datasets-18-channels.ckpt)",
+        "file": "official/biot/EEG-six-datasets-18-channels.ckpt",
+        "url": "https://github.com/ycq091044/BIOT/raw/d138e32634e52ae9fa6ec98ac9c4087b14ca869a/pretrained-models/EEG-six-datasets-18-channels.ckpt",
+        "revision": "github ycq091044/BIOT@d138e32634e52ae9fa6ec98ac9c4087b14ca869a",
+        "sha256": "78ff15a1782f194286a97b1abe68b2bf100a39803325e2917337d0a77a228542",
+        "licence": "MIT",
+        "paper": "Yang et al., BIOT, NeurIPS 2023, arXiv:2305.10351",
+    },
 }
+
+# BIOT's pretraining montage: the 16 TCP bipolar derivations (T7/P7/T8/P8 = T3/T5/T4/T6)
+BIOT_BIPOLAR = [("Fp1", "F7"), ("F7", "T3"), ("T3", "T5"), ("T5", "O1"), ("Fp2", "F8"), ("F8", "T4"), ("T4", "T6"),
+                ("T6", "O2"), ("Fp1", "F3"), ("F3", "C3"), ("C3", "P3"), ("P3", "O1"), ("Fp2", "F4"), ("F4", "C4"),
+                ("C4", "P4"), ("P4", "O2")]
 
 
 def _sha256(path: Path) -> str:
@@ -181,6 +195,29 @@ def load_labram_backbone(n_times: int = 2000):
     return m
 
 
+def load_biot_backbone():
+    """BIOT encoder (official six-datasets 18-channel weights; our 16 bipolar channels use
+    channel tokens 0-15, the authors' order). Output: the encoder's mean token (256)."""
+    torch = _torch()
+    from braindecode.models import BIOT
+
+    sd = torch.load(pretrained_path("biot"), map_location="cpu", weights_only=True)
+    m = BIOT(n_outputs=1, n_chans=18, n_times=2000, sfreq=200, return_feature=True)
+    missing, unexpected = m.load_state_dict({"encoder." + k: v for k, v in sd.items() if k != "index"}, strict=False)
+    missing = [k for k in missing if not k.startswith("final_layer")]
+    if missing or unexpected:
+        raise RuntimeError(f"BIOT weights do not match: missing={missing} unexpected={unexpected}")
+    return m
+
+
+def biot_input(X200: np.ndarray) -> np.ndarray:
+    """16 bipolar derivations, each divided by its own 95th percentile of |x| (per epoch), as
+    in the authors' data loaders."""
+    idx = {c: i for i, c in enumerate(CHANNELS)}
+    B = np.stack([X200[:, idx[a]] - X200[:, idx[b]] for a, b in BIOT_BIPOLAR], axis=1)
+    return (B / (np.quantile(np.abs(B), 0.95, axis=-1, keepdims=True) + 1e-8)).astype(np.float32)
+
+
 # --------------------------------------------------------------------------------------
 # Frozen embeddings
 # --------------------------------------------------------------------------------------
@@ -196,6 +233,8 @@ def extract_embeddings(model_name: str, X200: np.ndarray, device: str = "cuda", 
         m = load_cbramod_backbone()
     elif model_name == "labram":
         m = load_labram_backbone(X200.shape[-1])
+    elif model_name == "biot":
+        m = load_biot_backbone()
     else:
         raise ValueError(model_name)
     m.eval().to(device)
@@ -206,6 +245,12 @@ def extract_embeddings(model_name: str, X200: np.ndarray, device: str = "cuda", 
             if guard is not None:
                 guard.maybe_wait(on_pause=lambda: (m.to("cpu"), torch.cuda.empty_cache()), on_resume=lambda: m.to(device),
                                  context=f"{model_name} embeddings")
+            if model_name == "biot":
+                x = torch.from_numpy(biot_input(X200[i : i + batch])).to(device)
+                f = m(x)
+                f = f[-1] if isinstance(f, (tuple, list)) else f  # (b, 256)
+                out.append(f.float().cpu().numpy())
+                continue
             x = torch.from_numpy(X200[i : i + batch] / 100.0).float().to(device)
             if model_name == "cbramod":
                 f = m(x)  # (b, ch, patches, 200)
@@ -234,8 +279,10 @@ def cached_embeddings(model_name: str, X200, cache_key: str, cache_dir: Path, **
     f.parent.mkdir(parents=True, exist_ok=True)
     np.save(f, E)
     f.with_suffix(".json").write_text(json.dumps({"model": model_name, "weights": PRETRAINED[model_name], "shape": list(E.shape),
-                                                  "pooling": "per-channel mean over 1-s patches of final-layer tokens, 19x200 concatenated",
-                                                  "input": "average reference, 200 Hz, 10 s, uV/100"}, indent=2))
+                                                  "pooling": ("encoder mean token (256)" if model_name == "biot" else
+                                                              "per-channel mean over 1-s patches of final-layer tokens, 19x200 concatenated"),
+                                                  "input": ("16 TCP bipolar channels, 200 Hz, 10 s, each / its 95th pct |x|" if model_name == "biot"
+                                                            else "average reference, 200 Hz, 10 s, uV/100")}, indent=2))
     return E
 
 

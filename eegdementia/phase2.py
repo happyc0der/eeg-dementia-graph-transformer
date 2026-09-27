@@ -17,6 +17,7 @@ log = logging.getLogger(__name__)
 
 PHASE2_DIR = RESULTS_DIR / "phase2"
 FM_NAMES = ("cbramod", "labram")
+OPTIONAL_FM = ("biot",)  # exploratory extra (plan section 7); used when its embedding cache exists
 
 
 def _cached(f: Path, fn):
@@ -53,6 +54,10 @@ def build_phase2_dataset(raw: bool = False, embeddings: bool = True, device: str
         for m in FM_NAMES:
             ds.inputs[f"emb_{m}"] = deep.cached_embeddings(m, X200, key, CACHE_DIR, device=device, guard=guard)
             assert len(ds.inputs[f"emb_{m}"]) == len(ds.groups)
+    for m in OPTIONAL_FM:
+        f = deep.embedding_file(m, key, CACHE_DIR)
+        if f.exists():
+            ds.inputs[f"emb_{m}"] = np.load(f)
     if raw:
         ds.inputs["raw200"] = X200
         ds.inputs["raw125"] = _cached(d / "raw125.npy", lambda: deep.resample_epochs(ds.inputs["raw"], 250.0, 125.0))
@@ -101,6 +106,10 @@ def phase2_specs(guard=None, history_log=None) -> dict[str, M.ModelSpec]:
             f"{m}_lr", f"emb_{m}", M.lr_factory, M.C_GRID, sample_weight_param="clf__sample_weight",
             description=f"frozen {m} embedding (19 ch x 200, mean over 1-s patches) + L2 logistic regression (inner-CV C)",
         )
+    S["biot_lr"] = M.ModelSpec(
+        "biot_lr", "emb_biot", M.lr_factory, M.C_GRID, sample_weight_param="clf__sample_weight",
+        description="EXPLORATORY: frozen BIOT (six-datasets weights) on 16 bipolar channels, 256-d mean token + L2 LR",
+    )
     S["cbramod_spectral_lr"] = M.ModelSpec(
         "cbramod_spectral_lr", "emb_cbramod", M.lr_factory, M.C_GRID, extra_inputs=("spec_feat",),
         sample_weight_param="clf__sample_weight",

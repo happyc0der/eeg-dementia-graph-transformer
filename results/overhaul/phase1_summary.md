@@ -38,7 +38,7 @@
 | Boundary rejection | Drop windows within 0.5 s of an ASR `boundary` event | Avoids the discontinuities. |
 | Amplitude rejection | Per subject, drop a window if log(peak-to-peak) > median + 5 × 1.4826 × MAD of that subject's windows | Uses only the subject's own unlabelled signal, so it cannot leak across subjects or labels. |
 
-- **Yield:** 12,775 candidate windows. Of these, 792 (6.2 %) were dropped for boundaries and 187 (1.5 %) for amplitude, leaving **11,796 epochs**: 4,929 AD, 4,075 CN and 2,792 FTD. The per-subject count ranges from 40 to 227.
+- **Yield:** 12,775 candidate windows. Of these, 792 (6.2 %) were dropped for boundaries and 367 (2.9 %) for amplitude, leaving **11,616 epochs**: 4,852 AD, 4,012 CN and 2,752 FTD. The per-subject count ranges from 40 to 225. *(Corrected in phase 2: an earlier version of this line said 187 / 11,796 / 4,929 / 4,075 / 2,792 / 227, which did not match the cached data. Every result used 11,616 epochs; see `n_epochs` in each `summary.json`.)*
 - **Error handling:** errors are raised, never swallowed. The legacy script exited 0 on failure.
 
 **Common-mode artefact.** In the native (A1-A2) derivative data, each channel's SD is about 31-38 µV in every subject and the mean inter-channel correlation is 0.92. The common-mode signal (the channel mean) has an SD of 32.4 ± 1.4 (AD), 32.9 ± 1.4 (CN) and 32.3 ± 2.8 (FTD) µV. About 78 % of its power lies at 0.5-2 Hz, and it carries **92 % of each channel's variance**. It shows no group difference (Kruskal-Wallis p = 0.14-0.68 on every statistic we checked). Once it is removed with the average reference, channel SDs fall to typical resting-EEG values (about 4-15 µV). Occipital relative alpha then reads 47 % in CN instead of 9 %, and the average-reference features classify better (section 6.7). Most likely this is a reference or drift artefact of the preprocessing. It is worth telling the dataset authors about, and **phase-2 deep models should use the average reference** (or at least never z-score native-reference channels).
@@ -374,7 +374,7 @@ Phase-2 suggestions, in priority order:
 from eegdementia import experiments as E, evaluation as ev
 from eegdementia.models import ModelSpec
 
-ds = E.build_dataset(include_raw=True)          # inputs: raw (11796,19,2500) uV, feat, cov, demo
+ds = E.build_dataset(include_raw=True)          # inputs: raw (11616,19,2500) uV, feat, cov, demo
 splits = ev.outer_splits(ds.subjects, n_splits=5, n_repeats=10, seed=E.OUTER_SEED)  # identical to phase 1
 
 class MyNet:                                    # any object with this interface works

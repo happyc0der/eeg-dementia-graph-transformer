@@ -1,6 +1,6 @@
 """Phase-2 combinations (pre-registered soft votes), paired comparisons, tables and figures.
 
-    uv run python scripts/phase2_report.py [--posthoc-member MODEL]
+    uv run python scripts/phase2_report.py [--posthoc-members labram_lr,shallow]
 """
 
 from __future__ import annotations
@@ -27,7 +27,8 @@ TAB = P2 / "tables"
 PHASE1_MEMBERS = ["spectral_lr", "riemann_ts_lr", "all_lgbm"]
 PHASE1_REFS = ["ensemble_vote", "all_lgbm", "spectral_lr", "all_lr", "nested_select", "rbp_lr"]
 PHASE2_ORDER = ["cbramod_lr", "labram_lr", "cbramod_spectral_lr", "eegnet", "shallow", "cbramod_ft",
-                "ensemble_vote+cbramod_lr", "ensemble_vote+cbramod_ft"]
+                "ensemble_vote+cbramod_lr", "ensemble_vote+cbramod_ft", "ensemble_vote+labram_lr", "ensemble_vote+shallow",
+                "biot_lr"]
 OLD = {"accuracy": 0.636, "balanced_accuracy": 0.622}
 
 import importlib.util  # noqa: E402
@@ -53,10 +54,10 @@ def subject_preds(root: Path, task: str, model: str) -> pd.DataFrame | None:
 
 
 # --------------------------------------------------------------------------------------
-def make_votes(ds, posthoc: str | None):
+def make_votes(ds, posthoc: list[str]):
     votes = {"ensemble_vote+cbramod_lr": "cbramod_lr", "ensemble_vote+cbramod_ft": "cbramod_ft"}
-    if posthoc:
-        votes[f"ensemble_vote+{posthoc}"] = posthoc
+    for m in posthoc:
+        votes[f"ensemble_vote+{m}"] = m
     for task in ("cv3", "legacy"):
         tds, splits = E.task_data_and_splits(task, ds, n_repeats=10)
         pdir = pred_dir(ds, task)
@@ -71,11 +72,11 @@ def make_votes(ds, posthoc: str | None):
             res = ev.soft_vote(mem, tds.class_names, tds.subjects)
             desc = (f"soft vote (mean epoch log-prob) of {', '.join(PHASE1_MEMBERS + [extra])}; each member tuned by its own "
                     f"inner CV; computed from the members' saved outer-fold predictions"
-                    + (" [POST HOC member choice]" if extra == posthoc else ""))
+                    + (" [POST HOC member choice]" if extra in posthoc else ""))
             n_splits = len([s for s in splits if s.repeat in reps])
             E.save_result(task, name, desc, ds, tds, n_splits, res, out_root=P2,
                           extra_meta={"phase": 2, "n_repeats_run": len(reps), "wall_time_s": 0.0,
-                                      "posthoc": extra == posthoc})
+                                      "posthoc": extra in posthoc})
             print(f"[vote] {task}/{name}: {len(reps)} repeats")
 
 
@@ -87,7 +88,8 @@ def table(task, S2, S1, refs, binary=False):
         for m in names:
             s = S[m]
             cn = s["class_names"]
-            row = {"model": m + ("" if src == "phase 2" else " (phase 1)"),
+            tag = " (phase 1)" if src == "phase 1" else (" [post hoc]" if s.get("posthoc") else "")
+            row = {"model": m + tag,
                    "repeats": s["subject"].get("n_repeats", 1)}
             if binary:
                 pos, neg = cn[1], cn[0]
@@ -130,7 +132,7 @@ def paired(task, S2, comparators):
             r = ev.paired_comparison(a, b, cn, n_boot=2000, seed=E.OUTER_SEED)
             full[f"{m} vs {c}"] = r
             rows.append({
-                "model": m, "vs": c, "repeats": r["n_repeats"],
+                "model": m + (" [post hoc]" if S2[m].get("posthoc") else ""), "vs": c, "repeats": r["n_repeats"],
                 "mean Δ bal. acc. (pp)": f"{100 * r['mean_diff']:+.1f}",
                 "sd of per-repeat Δ (pp)": f"{100 * r['sd_per_repeat_diff']:.1f}",
                 "repeats better / equal": f"{r['n_repeats_a_better']} / {r['n_repeats_equal']} of {r['n_repeats']}",
@@ -152,7 +154,7 @@ def fig_comparison(task, S2, S1, refs, title, extra_refs=()):
     rows = []
     for m, s in S2.items():
         d = s["subject"]["balanced_accuracy"]
-        rows.append({"label": m, "mean": d["mean"], "ci": d.get("ci95"), "color": R.BAR})
+        rows.append({"label": m + (" [post hoc]" if s.get("posthoc") else ""), "mean": d["mean"], "ci": d.get("ci95"), "color": R.BAR})
     for m in refs:
         if m in S1:
             d = S1[m]["subject"]["balanced_accuracy"]
@@ -161,8 +163,12 @@ def fig_comparison(task, S2, S1, refs, title, extra_refs=()):
                        refs=[("chance", 1 / len(next(iter(S2.values()))["class_names"]))] + list(extra_refs))
 
 
+POSTHOC: set = set()
+
+
 def fig_paired(task, full, comparator, title):
-    items = [(k.split(" vs ")[0], v) for k, v in full.items() if k.endswith(f" vs {comparator}")]
+    items = [(k.split(" vs ")[0] + (" [post hoc]" if k.split(" vs ")[0] in POSTHOC else ""), v)
+             for k, v in full.items() if k.endswith(f" vs {comparator}")]
     if not items:
         return
     fig, ax = plt.subplots(figsize=(6.4, 0.34 * len(items) + 1.2))
@@ -200,16 +206,17 @@ def fig_per_class(S2, S1, models, out):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--posthoc-member", default=None, help="post-hoc 4th vote member (best end-to-end model)")
+    ap.add_argument("--posthoc-members", default="", help="comma list of post-hoc 4th vote members")
     ap.add_argument("--no-votes", action="store_true")
     args = ap.parse_args()
     if not args.no_votes:
         ds = E.build_dataset()
-        make_votes(ds, args.posthoc_member)
+        make_votes(ds, [m for m in args.posthoc_members.split(",") if m])
 
     out = {}
     # 3-class cv3
     S2, S1 = summaries(P2, "cv3"), summaries(RESULTS_DIR, "cv3")
+    POSTHOC.update(m for m, s in S2.items() if s.get("posthoc"))
     if S2:
         out["cv3"] = table("cv3", S2, S1, PHASE1_REFS)
         _, full = paired("cv3", S2, ["ensemble_vote", "spectral_lr"])

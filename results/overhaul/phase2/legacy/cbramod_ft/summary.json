@@ -1,0 +1,302 @@
+{
+  "task": "legacy",
+  "model": "cbramod_ft",
+  "description": "CBraMod fine-tuned end to end (official weights, avg-pool head), 200 Hz",
+  "class_names": [
+    "AD",
+    "CN",
+    "FTD"
+  ],
+  "n_subjects": 88,
+  "n_epochs": 11616,
+  "n_outer_splits": 1,
+  "selection_criterion": "pooled inner-OOF subject-level balanced accuracy, ties -> macro OvR AUC",
+  "aggregation": "subject probability = softmax(mean epoch log-probability)",
+  "pipeline_config": {
+    "prep": {
+      "crop_start_s": 30.0,
+      "crop_end_s": 30.0,
+      "reference": "average",
+      "sfreq": 250.0
+    },
+    "epoch": {
+      "length_s": 10.0,
+      "step_s": 5.0,
+      "drop_boundaries": true,
+      "boundary_margin_s": 0.5,
+      "reject_mad_k": 5.0
+    },
+    "feat": {
+      "welch_seg_s": 2.0,
+      "specparam_range": [
+        1.0,
+        40.0
+      ],
+      "alpha_search": [
+        5.0,
+        14.0
+      ],
+      "alpha_cog": [
+        7.0,
+        13.0
+      ],
+      "perm_entropy_order": 5,
+      "perm_entropy_delay": 2,
+      "sample_entropy_decim": 2,
+      "version": 1
+    }
+  },
+  "chosen_params_counts": {
+    "{}": 1
+  },
+  "platform": "Windows-11-10.0.26200-SP0",
+  "processor": "Intel64 Family 6 Model 151 Stepping 2, GenuineIntel",
+  "inner_splits": 5,
+  "wall_time_s": 143.47202944755554,
+  "n_jobs": 1,
+  "phase": 2,
+  "n_repeats_run": 10,
+  "device": "cuda:0 (RTX 3080 Ti Laptop)",
+  "gpu_pauses_so_far": [],
+  "runtime_s": 134.2787172794342,
+  "subject": {
+    "balanced_accuracy": {
+      "mean": 0.4761904761904762,
+      "sd": 0.0,
+      "ci95": [
+        0.38095238095238093,
+        0.6190476190476191
+      ]
+    },
+    "accuracy": {
+      "mean": 0.5,
+      "sd": 0.0,
+      "ci95": [
+        0.3888888888888889,
+        0.6666666666666666
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.404040404040404,
+      "sd": 0.0,
+      "ci95": [
+        0.2558922558922559,
+        0.5210084033613445
+      ]
+    },
+    "log_loss": {
+      "mean": 0.9415097832679749,
+      "sd": 0.0
+    },
+    "recall_AD": {
+      "mean": 0.42857142857142855,
+      "sd": 0.0,
+      "ci95": [
+        0.14285714285714285,
+        0.8571428571428571
+      ]
+    },
+    "specificity_AD": {
+      "mean": 0.9090909090909091,
+      "sd": 0.0,
+      "ci95": [
+        0.7272727272727273,
+        1.0
+      ]
+    },
+    "f1_AD": {
+      "mean": 0.5454545454545454,
+      "sd": 0.0
+    },
+    "recall_CN": {
+      "mean": 1.0,
+      "sd": 0.0,
+      "ci95": [
+        1.0,
+        1.0
+      ]
+    },
+    "specificity_CN": {
+      "mean": 0.5,
+      "sd": 0.0,
+      "ci95": [
+        0.25,
+        0.75
+      ]
+    },
+    "f1_CN": {
+      "mean": 0.6666666666666666,
+      "sd": 0.0
+    },
+    "recall_FTD": {
+      "mean": 0.0,
+      "sd": 0.0,
+      "ci95": [
+        0.0,
+        0.0
+      ]
+    },
+    "specificity_FTD": {
+      "mean": 0.8461538461538461,
+      "sd": 0.0,
+      "ci95": [
+        0.6923076923076923,
+        1.0
+      ]
+    },
+    "f1_FTD": {
+      "mean": 0.0,
+      "sd": 0.0
+    },
+    "auc_AD": {
+      "mean": 0.7402597402597402,
+      "sd": 0.0,
+      "ci95": [
+        0.4672077922077922,
+        1.0
+      ]
+    },
+    "auc_CN": {
+      "mean": 0.7916666666666666,
+      "sd": 0.0,
+      "ci95": [
+        0.5413194444444445,
+        0.9722222222222222
+      ]
+    },
+    "auc_FTD": {
+      "mean": 0.5076923076923077,
+      "sd": 0.0,
+      "ci95": [
+        0.2769230769230769,
+        0.7538461538461538
+      ]
+    },
+    "macro_auc": {
+      "mean": 0.6798729048729047,
+      "sd": 0.0,
+      "ci95": [
+        0.5293068274318274,
+        0.8008297258297259
+      ]
+    },
+    "confusion_summed": [
+      [
+        3,
+        2,
+        2
+      ],
+      [
+        0,
+        6,
+        0
+      ],
+      [
+        1,
+        4,
+        0
+      ]
+    ],
+    "n_repeats": 1
+  },
+  "epoch": {
+    "balanced_accuracy": {
+      "mean": 0.4734953931380907,
+      "sd": 0.0,
+      "ci95": [
+        0.3550334994299266,
+        0.6014771188399716
+      ]
+    },
+    "accuracy": {
+      "mean": 0.48813120414328875,
+      "sd": 0.0,
+      "ci95": [
+        0.3567223286246022,
+        0.6225103857944326
+      ]
+    },
+    "macro_f1": {
+      "mean": 0.44651654275881664,
+      "sd": 0.0,
+      "ci95": [
+        0.30647161065400785,
+        0.5670953500273797
+      ]
+    },
+    "log_loss": {
+      "mean": 0.9846685528755188,
+      "sd": 0.0
+    },
+    "recall_AD": {
+      "mean": 0.4246737841043891,
+      "sd": 0.0
+    },
+    "specificity_AD": {
+      "mean": 0.912483039348711,
+      "sd": 0.0
+    },
+    "f1_AD": {
+      "mean": 0.5383458646616541,
+      "sd": 0.0
+    },
+    "recall_CN": {
+      "mean": 0.8291457286432161,
+      "sd": 0.0
+    },
+    "specificity_CN": {
+      "mean": 0.47928994082840237,
+      "sd": 0.0
+    },
+    "f1_CN": {
+      "mean": 0.5871886120996441,
+      "sd": 0.0
+    },
+    "recall_FTD": {
+      "mean": 0.16666666666666666,
+      "sd": 0.0
+    },
+    "specificity_FTD": {
+      "mean": 0.8383160463697377,
+      "sd": 0.0
+    },
+    "f1_FTD": {
+      "mean": 0.21401515151515152,
+      "sd": 0.0
+    },
+    "auc_AD": {
+      "mean": 0.7141130323793521,
+      "sd": 0.0
+    },
+    "auc_CN": {
+      "mean": 0.7927317389049124,
+      "sd": 0.0
+    },
+    "auc_FTD": {
+      "mean": 0.5846782249051062,
+      "sd": 0.0
+    },
+    "macro_auc": {
+      "mean": 0.6971743320631236,
+      "sd": 0.0
+    },
+    "confusion_summed": [
+      [
+        358,
+        337,
+        148
+      ],
+      [
+        19,
+        660,
+        117
+      ],
+      [
+        110,
+        455,
+        113
+      ]
+    ],
+    "n_repeats": 1
+  }
+}

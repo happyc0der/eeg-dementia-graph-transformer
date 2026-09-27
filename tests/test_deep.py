@@ -123,3 +123,14 @@ def test_paired_comparison():
     assert d["mean_diff"] >= 0 and d["boot_ci95"][0] >= 0
     with pytest.raises(ValueError):
         ev.paired_comparison(r["subject"], r["subject"].assign(fold=0), ds.class_names, n_boot=5)
+
+
+def test_biot_bipolar_input_is_reference_free_and_normalised():
+    rng = np.random.default_rng(0)
+    X = rng.normal(size=(4, 19, 2000)).astype(np.float32)
+    B = deep.biot_input(X)
+    assert B.shape == (4, 16, 2000)
+    # adding a common signal to all channels (a reference change) does not change the input
+    common = rng.normal(size=(4, 1, 2000)).astype(np.float32) * 50
+    np.testing.assert_allclose(deep.biot_input(X + common), B, atol=1e-4)
+    np.testing.assert_allclose(np.quantile(np.abs(B), 0.95, axis=-1), 1.0, atol=1e-3)

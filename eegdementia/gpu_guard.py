@@ -123,9 +123,19 @@ class GpuGuard:
         self._last_check = time.time()
         return reasons
 
+    def _confirmed_reasons(self) -> list[str]:
+        """``reasons()``, but a pure GPU-utilisation reason must persist 30 s later: the first
+        utilisation sample right after our own kernels finish still contains our own load."""
+        time.sleep(3)
+        r = self.reasons()
+        if r and all(x.startswith("GPU utilisation") for x in r):
+            time.sleep(30)
+            r = self.reasons()
+        return r
+
     def wait_until_free(self, on_pause=None, on_resume=None, context: str = "") -> float:
         """Block while a foreign GPU user exists. Returns the seconds spent paused."""
-        r = self.reasons()
+        r = self._confirmed_reasons()
         if not r:
             return 0.0
         t0 = time.time()
