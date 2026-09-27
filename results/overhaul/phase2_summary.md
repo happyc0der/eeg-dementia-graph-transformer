@@ -42,6 +42,7 @@ The phase-2 numbers are therefore directly comparable with `phase1_summary.md`.
     - ShallowFBCSPNet: 62.2 ± 4.7 % [51.6, 72.1] (AUC 0.616), level with `rbp_lr`.
 
     Phase 1 reached 62.5 % (`rbp_lr`) and 60.0 % (`spectral_lr`). No deep representation separates AD from FTD better than relative band power.
+- **Above chance:** a permutation test of the whole nested `cbramod_lr` pipeline gives a null of 33.4 ± 7.3 %, with a 95th percentile of 46.7 %. The observed value is 59.0 %, p = 0.020, which is the minimum possible with 50 permutations.
 - **Legacy 18-subject split:** frozen LaBraM scores 71.6 % subject / 68.3 % epoch accuracy, against the old graph transformer's 63.6 % chunk accuracy. With 18 test subjects the CI is [49.5, 90.5], so this ranks nothing (see phase 1, section 6.3).
 - **GPU:** about 6.5 h of GPU compute on the RTX 3080 Ti Laptop (the GPU was in use from 01:36 to 09:11).
   - There were **no pauses for Keshav's jobs**; nothing of his ran on the GPU overnight.
@@ -58,7 +59,7 @@ The plan fixed the following before any outer-fold run:
 Deviations and additions, all reported:
 
 1. **The ensemble + best end-to-end model** (`ensemble_vote+shallow`) is **post hoc**. The plan allowed it only "flagged as such". I also added `ensemble_vote+labram_lr` (+ the best deep model overall) post hoc. Both are marked `[post hoc]` in every table.
-2. **The permutation test** was run with **50** permutations instead of 100, because the 3,800-dimensional LR head costs about 7 CPU-minutes per outer fold. See section 7.
+2. **The permutation test** was run with **50** permutations instead of 100, because it took 3.2 h on 12 CPU workers. See section 7.
 3. **Frozen BIOT** was one of the optional extras (plan, section 7). Its result is exploratory. LaBraM fine-tuning, the other extra, was not run.
 4. **Test location:** the plan says the bagging leakage check lives in `tests/test_leakage.py`. It is in `tests/test_deep.py`, which reuses that file's fixtures.
 5. **The GPU runner was restarted once** (at 05:07, resuming from the per-fold checkpoint) to fix a guard false positive (section 9). No model setting changed. The one finished CBraMod fine-tuning fold was kept.
@@ -263,7 +264,15 @@ The split is the same 70 train / 18 test subjects as the April 2025 model (7 AD,
 
 ## 7. Permutation test
 
-PERM_TEXT
+`cbramod_lr`, the pre-registered primary foundation model, was tested with a subject-label permutation of the **whole nested pipeline**: inner-CV choice of C, the scaler and the LR, one 5-fold CV per permutation, as for phase-1 `spectral_lr`.
+
+- **Result:** with **50 permutations**, the null has mean 33.4 ± 7.3 % and a 95th percentile of 46.7 %.
+- **Observed:** 10-repeat mean 59.0 %, **p = 0.020**. This is 1/51, the smallest p-value 50 permutations allow; no permuted run reached the observed value.
+- **Cost:** 3.2 h on 12 CPU workers. The permuted-label LR fits converge slowly, so this took about twice the expected time. 100 permutations would not have fitted the budget.
+- **Other models:** the null is essentially model-independent, since it depends on the class balance and the number of subjects. Phase 1's nulls had 95th percentiles of 42.7-44.1 %. Every phase-2 model (≥ 52.3 %) is therefore well above chance. EEGNet and BIOT, the weakest, were not permutation-tested themselves.
+- The raw values are in `phase2/permutation/cbramod_lr.json`.
+
+![permutation](phase2/figures/permutation_cbramod_lr.png)
 
 ## 8. Training diagnostics
 
