@@ -20,4 +20,5 @@ bash scripts/queue_loso.sh
 uv run python scripts/permutation_test.py --model spectral_lr --n-perm 100
 uv run python scripts/permutation_test.py --model rbp_lr --n-perm 500
 uv run python scripts/interpret.py --model spectral_lr --repeats 3
-uv run python scripts/make_figures.py --best spectral_lr
+uv run python scripts/make_figures.py --best ensemble_vote --compare rbp_lr,spectral_lr,all_lgbm,ensemble_vote,nested_select
+uv run python scripts/fill_summary.py   # only once, on the template with TABLE_* placeholders
